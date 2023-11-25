@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Cache
+.parcel-cache/
+
+
+# Transpiled files
+build/
+dist/
+
+# Optional npm cache directory
+.npm
+
+# Misc
+.DS_Store
+.org
+.vs/

@@ -1,0 +1,13 @@
+{
+	"name": "speedhockey.online",
+	"version": "1.0.0",
+	"scripts": {
+		"start": "parcel src/index.html",
+		"build": "npm run test && parcel build src/index.html"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"parcel": "^2.10.3",
+		"typescript": "^5.3.2"
+	}
+}
