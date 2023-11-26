@@ -12,6 +12,12 @@ const io = new Server<
     }
 });
 
+io.on("connect", (socket) => {
+    socket.on("hello", () => {
+        console.log("received hello from " + socket.id);
+    });
+});
+
 // Emit time at roughly 60Hz
 setInterval(() => {
     io.emit("monotonicTime", process.hrtime.bigint().toString());

@@ -2,6 +2,8 @@ import { Socket, io } from "socket.io-client";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://127.0.0.1:3000/");
 
+sio.emit("hello");
+
 sio.on("monotonicTime", (time: BigIntStr) => {
     _time = BigInt(time);
 })
