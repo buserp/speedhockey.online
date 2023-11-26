@@ -1,38 +1,36 @@
 import { Socket, io } from "socket.io-client";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS } from "./constants";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://127.0.0.1:3000/");
 
-sio.emit("hello");
+let _state: GameState = {
+    puckPos: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 },
+    redScore: 0,
+    bluScore: 0,
+};
 
-sio.on("monotonicTime", (time: BigIntStr) => {
-    _time = BigInt(time);
-})
+
+sio.on("updateGameState", (state: GameState) => {
+    console.log(state);
+    _state = state;
+});
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
-var _time: bigint = BigInt(0);
+canvas.setAttribute("width", CANVAS_WIDTH.toString());
+canvas.setAttribute("height", CANVAS_HEIGHT.toString());
 
-const width = canvas.width;
-const height = canvas.height;
 
 let ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
-setInterval(() => {
+function animate(dt: number) {
     // Clear the canvas
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = 'red';
-    ctx.fillRect(width / 2, height / 2 + cyclicSine(_time) * 50, 25, 25);
-}, 16);
-
-
-function nanosecondsToSeconds(nanoseconds: bigint): number {
-    return Number(nanoseconds) / 1e9;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillStyle = 'black';
+    //ctx.arc(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS, 0, 2 * Math.PI);
+    ctx.fillRect(_state.puckPos.x, _state.puckPos.y, 20, 20);
+    requestAnimationFrame(animate);
 }
 
-function cyclicSine(timestamp: bigint): number {
-    const seconds = nanosecondsToSeconds(timestamp);
-    const frequency = 0.3; // Adjust the frequency as needed
-    const amplitude = 1.0; // Adjust the amplitude as needed
-    return amplitude * Math.sin(2 * Math.PI * frequency * seconds);
-}
+animate(0);
