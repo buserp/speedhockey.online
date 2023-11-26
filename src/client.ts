@@ -1,9 +1,9 @@
-import { io } from "socket.io-client";
+import { Socket, io } from "socket.io-client";
 
-const sio = io("http://127.0.0.1:3000/");
+const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://127.0.0.1:3000/");
 
-sio.on("monotonic_time", (time) => {
-    _time = parseBigIntStringToBigInt(time);
+sio.on("monotonicTime", (time: BigIntStr) => {
+    _time = BigInt(time);
 })
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -23,9 +23,6 @@ setInterval(() => {
     ctx.fillRect(width / 2, height / 2 + cyclicSine(_time) * 50, 25, 25);
 }, 16);
 
-function parseBigIntStringToBigInt(bigIntString: string): bigint {
-    return BigInt(bigIntString);
-}
 
 function nanosecondsToSeconds(nanoseconds: bigint): number {
     return Number(nanoseconds) / 1e9;
