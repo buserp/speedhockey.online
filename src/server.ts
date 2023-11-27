@@ -20,24 +20,19 @@ const io = new Server<
     }
 });
 
-let randAngle = Math.random() * 2 * Math.PI;
-let speed = 5;
 
-let _puck: Puck = {
-    x: CANVAS_WIDTH / 2,
-    y: CANVAS_HEIGHT / 2,
-    dx: Math.sin(randAngle) * speed,
-    dy: Math.cos(randAngle) * speed,
-};
-
-const newPuck = () => {
+function newPuck(): Puck {
+    let randAngle = Math.random() * 2 * Math.PI;
+    let speed = Math.random() * 5 + 3;
     return {
         x: CANVAS_WIDTH / 2,
         y: CANVAS_HEIGHT / 2,
         dx: Math.sin(randAngle) * speed,
         dy: Math.cos(randAngle) * speed,
     };
-}
+};
+
+let _puck: Puck = newPuck();
 
 function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
@@ -60,11 +55,13 @@ function tick(): void {
     if (_puck.x - (PUCK_RADIUS / 2) < 0) {
         _puck.dx = Math.abs(_puck.dx);
         _state.bluScore += 1;
+        _puck = newPuck();
     }
 
     if (_puck.x + (PUCK_RADIUS / 2) > CANVAS_WIDTH) {
         _puck.dx = -Math.abs(_puck.dx);
         _state.redScore += 1;
+        _puck = newPuck();
 
     }
 
@@ -84,14 +81,12 @@ function tick(): void {
         contains(_puck.y, _state.player1Pos.y, _state.player1Pos.y + PADDLE_HEIGHT) &&
         contains(_puck.x, _state.player1Pos.x, _state.player1Pos.x + PADDLE_WIDTH)) {
         _puck.dx = Math.abs(_puck.dx);
-        _puck = newPuck();
     }
 
     if (_puck.dx + (PUCK_RADIUS / 2) > 0 &&
         contains(_puck.y, _state.player2Pos.y, _state.player2Pos.y + PADDLE_HEIGHT) &&
         contains(_puck.x, _state.player2Pos.x, _state.player2Pos.x + PADDLE_WIDTH)) {
         _puck.dx = -Math.abs(_puck.dx);
-        _puck = newPuck();
     }
 
     // Update state
