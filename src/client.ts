@@ -4,7 +4,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_WI
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("https://socket.speedhockey.online/");
 
-let _player = 0;
+let _player = 2;
 
 let _state: GameState = {
     puckPos: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 },
@@ -36,6 +36,10 @@ const sketch = (p5: P5) => {
         let blueButton = p5.createButton('Blue');
         blueButton.position(100, CANVAS_HEIGHT + 10);
         blueButton.mousePressed(() => { _player = 1; });
+
+        let specButton = p5.createButton('Spectate');
+        specButton.position(180, CANVAS_HEIGHT + 10);
+        specButton.mousePressed(() => { _player = 2; });
 
         p5.mouseMoved = () => {
             sio.emit("updatePosition", {

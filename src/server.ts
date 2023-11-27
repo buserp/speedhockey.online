@@ -107,7 +107,7 @@ io.on("connect", (socket) => {
             _state.player1Pos.y = clamp(pos.y, 0, CANVAS_HEIGHT - PADDLE_HEIGHT);
 
         }
-        else {
+        else if (player == 1) {
             _state.player2Pos.x = PLAYER2X;
             _state.player2Pos.y = clamp(pos.y, 0, CANVAS_HEIGHT - PADDLE_HEIGHT);
         }
