@@ -4,7 +4,7 @@ interface ServerToClientEvents {
 }
 
 interface ClientToServerEvents {
-    updatePosition: (pos: Vector2) => void;
+    updatePosition: (pos: Vector2, player: number) => void;
 }
 
 interface InterServerEvents { }
@@ -21,6 +21,8 @@ type Vector2 = {
 
 type GameState = {
     puckPos: Vector2,
+    player1Pos: Vector2,
+    player2Pos: Vector2,
     redScore: number,
     bluScore: number,
 };
