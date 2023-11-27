@@ -15,7 +15,7 @@ const io = new Server<
     SocketData
 >({
     cors: {
-        origin: "http://localhost:1234",
+        origin: "https://speedhockey.online",
         methods: ["GET", "POST"]
     }
 });
