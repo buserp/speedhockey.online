@@ -70,13 +70,13 @@ function tick(): void {
     _puck.x += _puck.dx;
     _puck.y += _puck.dy;
 
-    if (_puck.dx < 0 &&
+    if (_puck.dx - (PUCK_RADIUS / 2) < 0 &&
         contains(_puck.y, _state.player1Pos.y, _state.player1Pos.y + PADDLE_HEIGHT) &&
         contains(_puck.x, _state.player1Pos.x, _state.player1Pos.x + PADDLE_WIDTH)) {
         _puck.dx = Math.abs(_puck.dx);
     }
 
-    if (_puck.dx > 0 &&
+    if (_puck.dx + (PUCK_RADIUS / 2) > 0 &&
         contains(_puck.y, _state.player2Pos.y, _state.player2Pos.y + PADDLE_HEIGHT) &&
         contains(_puck.x, _state.player2Pos.x, _state.player2Pos.x + PADDLE_WIDTH)) {
         _puck.dx = -Math.abs(_puck.dx);
