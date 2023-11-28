@@ -5,10 +5,12 @@
     "build": "cross-env NODE_ENV=production parcel build src/index.html",
     "serve": "tsc && node --env-file=.env.production dist/server.js",
     "start": "cross-env NODE_ENV=development parcel src/index.html",
-    "serve-dev": "ts-node-dev --respawn --transpile-only --env-file=.env.development src/server.ts"
+    "serve-dev": "ts-node-dev --respawn --transpile-only --env-file=.env.development src/server.ts",
+    "physics": "ts-node-dev --respawn --transpile-only --env-file=.env.development src/physics.ts"
   },
   "license": "MIT",
   "dependencies": {
+    "matter-js": "^0.19.0",
     "p5": "^1.8.0",
     "parcel": "^2.10.3",
     "socket.io": "^4.7.2",
@@ -16,6 +18,7 @@
     "typescript": "^5.3.2"
   },
   "devDependencies": {
+    "@types/matter-js": "^0.19.5",
     "@types/p5": "^1.7.4",
     "buffer": "^6.0.3",
     "cross-env": "^7.0.3",
