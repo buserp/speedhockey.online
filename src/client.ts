@@ -2,7 +2,7 @@ import { Socket, io } from "socket.io-client";
 import P5 from "p5";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_WIDTH, PADDLE_HEIGHT } from "./constants";
 
-const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io("https://socket.speedhockey.online/");
+const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
 
 let _player = 2;
 
@@ -15,7 +15,6 @@ let _state: GameState = {
 };
 
 sio.on("updateGameState", (state: GameState) => {
-    console.log(state);
     _state = state;
 });
 

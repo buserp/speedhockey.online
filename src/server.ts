@@ -1,6 +1,12 @@
 import { Server } from "socket.io";
 import { TICKRATE_MS, CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_HEIGHT, PADDLE_WIDTH } from "./constants";
 
+const cors_origin = process.env.CORS_ORIGIN;
+if (cors_origin == undefined) {
+    console.log("Environment variable CORS_ORIGIN not available. Exiting...");
+    process.exit();
+}
+
 type Puck = {
     x: number;
     y: number;
@@ -15,11 +21,10 @@ const io = new Server<
     SocketData
 >({
     cors: {
-        origin: "https://speedhockey.online",
+        origin: cors_origin,
         methods: ["GET", "POST"]
     }
 });
-
 
 function newPuck(): Puck {
     let randAngle = Math.random() * 2 * Math.PI;

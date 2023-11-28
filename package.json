@@ -2,9 +2,10 @@
   "name": "speedhockey.online",
   "version": "1.0.0",
   "scripts": {
-    "start": "parcel src/index.html",
-    "build": "parcel build src/index.html",
-    "serve": "tsc && node dist/server.js"
+    "build": "cross-env NODE_ENV=production parcel build src/index.html",
+    "serve": "tsc && node --env-file=.env.production dist/server.js",
+    "start": "cross-env NODE_ENV=development parcel src/index.html",
+    "serve-dev": "ts-node-dev --respawn --transpile-only --env-file=.env.development src/server.ts"
   },
   "license": "MIT",
   "dependencies": {
@@ -16,6 +17,8 @@
   },
   "devDependencies": {
     "@types/p5": "^1.7.4",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "cross-env": "^7.0.3",
+    "ts-node-dev": "^2.0.0"
   }
 }
