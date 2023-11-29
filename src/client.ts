@@ -1,6 +1,6 @@
 import { Socket, io } from "socket.io-client";
 import P5 from "p5";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_WIDTH, PADDLE_HEIGHT } from "./constants";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_RADIUS } from "./constants";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
 
@@ -55,12 +55,12 @@ const sketch = (p5: P5) => {
         // DEMO: Let the circle instances draw themselves
         p5.noStroke();
         p5.fill("orange");
-        p5.ellipse(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS);
+        p5.ellipse(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS * 2);
 
         p5.fill("red");
-        p5.rect(_state.player1Pos.x, _state.player1Pos.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+        p5.ellipse(_state.player1Pos.x, _state.player1Pos.y, PADDLE_RADIUS*2);
         p5.fill("blue");
-        p5.rect(_state.player2Pos.x, _state.player2Pos.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+        p5.ellipse(_state.player2Pos.x, _state.player2Pos.y, PADDLE_RADIUS*2);
 
         p5.textSize(32);
         p5.textAlign(p5.CENTER, p5.TOP);

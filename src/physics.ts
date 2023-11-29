@@ -1,4 +1,4 @@
-import { TICKRATE_MS, CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_HEIGHT, PADDLE_WIDTH } from "./constants";
+import { TICKRATE_MS, CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_HEIGHT, PADDLE_WIDTH, PADDLE_RADIUS } from "./constants";
 import { Bodies, Composite, Engine, Body } from "matter-js";
 import { Server } from "socket.io";
 
@@ -18,14 +18,23 @@ const engine = Engine.create({ gravity: { y: 0 } });
 
 const wall_thickness = 50;
 
-let puck = Bodies.circle(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, PUCK_RADIUS);
-let player1 = Bodies.rectangle(PLAYER1X, CANVAS_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT)
-let player2 = Bodies.rectangle(PLAYER2X, CANVAS_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT)
-Body.applyForce(puck, { x: 0, y: 0 }, { x: 0.02, y: 0.02 });
-let ground = Bodies.rectangle(0, 0, CANVAS_WIDTH, wall_thickness, { isStatic: true, position: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT+wall_thickness/2 } });
-let ceiling = Bodies.rectangle(0, 0, CANVAS_WIDTH, wall_thickness, { isStatic: true, position: { x: CANVAS_WIDTH / 2, y: -wall_thickness } });
+let puck = Bodies.circle(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, PUCK_RADIUS, {
+    friction: 0,
+    frictionAir: 0,
+    restitution: 1.0,
+});
 
-Composite.add(engine.world, [puck, ground, ceiling, player1, player2]);
+let player1 = Bodies.circle(PLAYER1X, CANVAS_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
+let player2 = Bodies.circle(PLAYER2X, CANVAS_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
+
+Body.applyForce(puck, { x: 0, y: 0 }, { x: 0.02, y: 0.02 });
+
+let ground = Bodies.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT + wall_thickness / 2, CANVAS_WIDTH, wall_thickness, { isStatic: true });
+let ceiling = Bodies.rectangle(CANVAS_WIDTH / 2, -wall_thickness/2, CANVAS_WIDTH, wall_thickness, { isStatic: true });
+let wallLeft = Bodies.rectangle(-wall_thickness / 2, CANVAS_HEIGHT / 2, wall_thickness, CANVAS_HEIGHT, { isStatic: true });
+let wallRight = Bodies.rectangle(CANVAS_WIDTH+ wall_thickness/2, CANVAS_HEIGHT / 2, wall_thickness, CANVAS_HEIGHT, { isStatic: true });
+
+Composite.add(engine.world, [puck, ground, ceiling, player1, player2, wallLeft, wallRight]);
 
 
 let _state: GameState = {
@@ -36,12 +45,10 @@ let _state: GameState = {
     bluScore: 0,
 };
 
-Body.applyForce(player1, { x: 0, y: 0 }, { x: 0.01, y: -0.01 });
-
 io.on("connect", (socket) => {
     socket.on("updatePosition", (pos: Vector2, player: number) => {
         if (player == 0) {
-            Body.setPosition(player1, pos);
+            Body.setPosition(player1, { x: PLAYER1X, y: pos.y });
         }
         else if (player == 1) {
             Body.setPosition(player2, pos);
