@@ -55,7 +55,7 @@ const sketch = (p5: P5) => {
 
         p5.line(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
 
-        p5.fill("orange");
+        p5.fill("black");
         p5.ellipse(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS * 2);
 
         p5.fill("red");

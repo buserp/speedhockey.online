@@ -61,6 +61,7 @@ io.on("connect", (socket) => {
 function resetPuck() {
     Body.setPosition(puck, { x: CANVAS_WIDTH / 2, y: Math.random() * CANVAS_HEIGHT });
     Body.setVelocity(puck, { x: 0, y: 0 });
+    Body.setAngularSpeed(puck, 0);
 }
 
 function clamp(val: number, low: number, high: number): number {
