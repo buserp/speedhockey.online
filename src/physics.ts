@@ -47,17 +47,17 @@ io.on("connect", (socket) => {
         pos.y = clamp(pos.y, 0, CANVAS_HEIGHT);
         if (player == 0) {
             pos.x = clamp(pos.x, 0, CANVAS_WIDTH / 2 - PADDLE_RADIUS);
-            Body.setPosition(player1, pos);
+            Body.setPosition(player1, pos, true);
         }
         else if (player == 1) {
             pos.x = clamp(pos.x, CANVAS_WIDTH / 2 + PADDLE_RADIUS, CANVAS_WIDTH);
-            Body.setPosition(player2, pos);
+            Body.setPosition(player2, pos, true);
         }
     })
 })
 
 function resetPuck() {
-    Body.setPosition(puck, { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 });
+    Body.setPosition(puck, { x: CANVAS_WIDTH / 2, y: Math.random() * CANVAS_HEIGHT });
     Body.setVelocity(puck, { x: 0, y: 0 });
 }
 
