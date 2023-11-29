@@ -83,4 +83,5 @@ function output(dt: number) {
 
 setInterval(output, TICKRATE_MS);
 
+console.log("running on port 3000...");
 io.listen(3000);
