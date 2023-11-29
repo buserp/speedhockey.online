@@ -47,10 +47,12 @@ io.on("connect", (socket) => {
         pos.y = clamp(pos.y, 0, CANVAS_HEIGHT);
         if (player == 0) {
             pos.x = clamp(pos.x, 0, CANVAS_WIDTH / 2 - PADDLE_RADIUS);
+            // @ts-ignore (needed because type definitions for MatterJS are not correct)
             Body.setPosition(player1, pos, true);
         }
         else if (player == 1) {
             pos.x = clamp(pos.x, CANVAS_WIDTH / 2 + PADDLE_RADIUS, CANVAS_WIDTH);
+            // @ts-ignore (needed because type definitions for MatterJS are not correct)
             Body.setPosition(player2, pos, true);
         }
     })
