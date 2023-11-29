@@ -52,8 +52,9 @@ const sketch = (p5: P5) => {
     // The sketch draw method
     p5.draw = () => {
         p5.background(p5.color("white"));
-        // DEMO: Let the circle instances draw themselves
-        p5.noStroke();
+
+        p5.line(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+
         p5.fill("orange");
         p5.ellipse(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS * 2);
 
