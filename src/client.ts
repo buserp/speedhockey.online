@@ -59,17 +59,17 @@ const sketch = (p5: P5) => {
         p5.ellipse(_state.puckPos.x, _state.puckPos.y, PUCK_RADIUS * 2);
 
         p5.fill("red");
-        p5.ellipse(_state.player1Pos.x, _state.player1Pos.y, PADDLE_RADIUS*2);
+        p5.ellipse(_state.player1Pos.x, _state.player1Pos.y, PADDLE_RADIUS * 2);
         p5.fill("blue");
-        p5.ellipse(_state.player2Pos.x, _state.player2Pos.y, PADDLE_RADIUS*2);
+        p5.ellipse(_state.player2Pos.x, _state.player2Pos.y, PADDLE_RADIUS * 2);
 
         p5.textSize(32);
         p5.textAlign(p5.CENTER, p5.TOP);
         p5.fill(255, 0, 0); // Red color
-        p5.text('Red Score: ' + _state.redScore, CANVAS_WIDTH / 4, 10);
+        p5.text(_state.redScore, CANVAS_WIDTH / 4, 10);
 
         p5.fill(0, 0, 255); // Blue color
-        p5.text('Blu Score: ' + _state.bluScore, (3 * CANVAS_WIDTH) / 4, 10);
+        p5.text(_state.bluScore, (3 / 4 * CANVAS_WIDTH), 10);
     };
 };
 
