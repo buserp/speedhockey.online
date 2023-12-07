@@ -39,18 +39,11 @@ const sketch = (p5: P5) => {
         let specButton = p5.createButton('Spectate');
         specButton.position(180, CANVAS_HEIGHT + 10);
         specButton.mousePressed(() => { _player = 2; });
-
-        p5.mouseMoved = () => {
-            sio.emit("updatePosition", {
-                x: p5.mouseX,
-                y: p5.mouseY,
-            },
-                _player);
-        }
     };
 
     // The sketch draw method
     p5.draw = () => {
+        update(p5);
         p5.background(p5.color("white"));
 
         p5.line(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT);
@@ -72,5 +65,13 @@ const sketch = (p5: P5) => {
         p5.text(_state.bluScore, (3 / 4 * CANVAS_WIDTH), 10);
     };
 };
+
+function update(p5: P5) {
+    sio.emit("updatePosition", {
+        x: p5.mouseX,
+        y: p5.mouseY,
+    },
+        _player);
+}
 
 new P5(sketch);
