@@ -21,7 +21,7 @@ const io = new Server<
 
 let puck = Bodies.circle(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, PUCK_RADIUS, {
     friction: 0,
-    frictionAir: 0,
+    frictionAir: 0.0075,
     restitution: 1.0,
     mass: 20.0,
 });
