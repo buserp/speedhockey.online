@@ -25,6 +25,10 @@ const sketch = (p5: P5) => {
         canvas.parent("app");
         canvas.style('border', '2px solid black');
 
+        screen.orientation.addEventListener("change", (ev) => {
+            p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
+        });
+
         // Configuring the canvas
         p5.background("white");
 
