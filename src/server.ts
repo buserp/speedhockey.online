@@ -1,5 +1,5 @@
 import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE, clamp } from "./constants";
-import { Bodies, Composite, Engine, Body, Constraint, Vector } from "matter-js";
+import { Bodies, Composite, Engine, Body } from "matter-js";
 import { Server } from "socket.io";
 
 
