@@ -8,11 +8,7 @@ interface ClientToServerEvents {
 }
 
 interface InterServerEvents { }
-
 interface SocketData { }
-
-// Because vanilla socket.io can't serialize a bigint
-type BigIntStr = string;
 
 type Vector2 = {
     x: number,

@@ -1,4 +1,4 @@
-import { TICKRATE_MS, CANVAS_WIDTH, CANVAS_HEIGHT, PUCK_RADIUS, PLAYER1X, PLAYER2X, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE } from "./constants";
+import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE } from "./constants";
 import { Bodies, Composite, Engine, Body, Constraint, Vector } from "matter-js";
 import { Server } from "socket.io";
 
@@ -19,27 +19,27 @@ const io = new Server<
 });
 
 
-let puck = Bodies.circle(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, PUCK_RADIUS, {
+let puck = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PUCK_RADIUS, {
     friction: 0,
     frictionAir: 0.0075,
     restitution: 1.0,
     mass: 20.0,
 });
 
-let player1 = Bodies.circle(PLAYER1X, CANVAS_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
-let player2 = Bodies.circle(PLAYER2X, CANVAS_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
+let player1 = Bodies.circle(0+PADDLE_RADIUS, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
+let player2 = Bodies.circle(ARENA_WIDTH-PADDLE_RADIUS, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
 
 
-let ground = Bodies.rectangle(CANVAS_WIDTH / 2, CANVAS_HEIGHT + wall_thickness / 2, CANVAS_WIDTH, wall_thickness, { isStatic: true });
-let ceiling = Bodies.rectangle(CANVAS_WIDTH / 2, -wall_thickness / 2, CANVAS_WIDTH, wall_thickness, { isStatic: true });
+let ground = Bodies.rectangle(ARENA_WIDTH / 2, ARENA_HEIGHT + wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
+let ceiling = Bodies.rectangle(ARENA_WIDTH / 2, -wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
 
 Composite.add(engine.world, [puck, ground, ceiling, player1, player2]);
 
 
 let _state: GameState = {
-    puckPos: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 },
-    player1Pos: { x: PLAYER1X, y: CANVAS_HEIGHT / 2 },
-    player2Pos: { x: PLAYER2X, y: CANVAS_HEIGHT / 2 },
+    puckPos: puck.position,
+    player1Pos: player1.position,
+    player2Pos: player2.position,
     redScore: 0,
     bluScore: 0,
 };
@@ -63,12 +63,12 @@ io.on("connect", (socket) => {
             // @ts-ignore (needed because type definitions for MatterJS are not correct)
             Body.setPosition(currentPlayer, pos, true);
         }
-        pos.y = clamp(pos.y, 0, CANVAS_HEIGHT);
+        pos.y = clamp(pos.y, 0, ARENA_HEIGHT);
     })
 })
 
 function resetPuck() {
-    Body.setPosition(puck, { x: CANVAS_WIDTH / 2, y: Math.random() * CANVAS_HEIGHT });
+    Body.setPosition(puck, { x: ARENA_WIDTH / 2, y: Math.random() * ARENA_HEIGHT });
     Body.setVelocity(puck, { x: 0, y: 0 });
     Body.setAngularSpeed(puck, 0);
 }
@@ -83,11 +83,11 @@ function tick(dt: number) {
         resetPuck();
         _state.bluScore += 1;
     }
-    if (puck.position.x > CANVAS_WIDTH) {
+    if (puck.position.x > ARENA_WIDTH) {
         resetPuck();
         _state.redScore += 1;
     }
-    puck.position.y = clamp(puck.position.y, 0, CANVAS_HEIGHT);
+    puck.position.y = clamp(puck.position.y, 0, ARENA_HEIGHT);
     _state.puckPos = puck.position;
     _state.player1Pos = player1.position;
     _state.player2Pos = player2.position;
