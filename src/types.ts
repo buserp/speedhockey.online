@@ -1,10 +1,10 @@
 interface ServerToClientEvents {
-    assignSlot: (slot: number) => void;
     updateGameState: (state: GameState) => void;
 }
 
 interface ClientToServerEvents {
-    updatePosition: (pos: Vector2, player: number) => void;
+    updatePosition: (pos: Vector2) => void;
+    joinTeam: (team: number | null) => void;
 }
 
 interface InterServerEvents { }
@@ -17,8 +17,8 @@ type Vector2 = {
 
 type GameState = {
     puckPos: Vector2,
-    player1Pos: Vector2,
-    player2Pos: Vector2,
+    redPlayers: { [id: string]: Vector2 },
+    bluPlayers: { [id: string]: Vector2 },
     redScore: number,
     bluScore: number,
 };

@@ -4,23 +4,19 @@ import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, canvasToArena, a
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
 
-let _player = 2;
 let canvasWidth = ARENA_WIDTH;
 let canvasHeight = ARENA_HEIGHT;
 
 let state: GameState = {
     puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
-    player1Pos: { x: 0, y: ARENA_HEIGHT / 2 },
-    player2Pos: { x: ARENA_WIDTH, y: ARENA_HEIGHT / 2 },
+    redPlayers: {},
+    bluPlayers: {},
     redScore: 0,
     bluScore: 0,
 };
 
 sio.on("updateGameState", (newState: GameState) => {
     state = newState;
-    state.player1Pos = arenaToCanvas(canvasWidth, canvasHeight, newState.player1Pos);
-    state.player2Pos = arenaToCanvas(canvasWidth, canvasHeight, newState.player2Pos);
-    state.puckPos = arenaToCanvas(canvasWidth, canvasHeight, newState.puckPos);
 });
 
 const sketch = (p5: P5) => {
@@ -42,15 +38,21 @@ const sketch = (p5: P5) => {
 
         let redButton = p5.createButton('Red');
         redButton.position(20, canvasHeight + 10);
-        redButton.mousePressed(() => { _player = 0 });
+        redButton.mousePressed(() => {
+            joinTeam(0);
+        });
 
         let blueButton = p5.createButton('Blue');
         blueButton.position(100, canvasHeight + 10);
-        blueButton.mousePressed(() => { _player = 1; });
+        blueButton.mousePressed(() => {
+            joinTeam(1);
+        });
 
         let specButton = p5.createButton('Spectate');
         specButton.position(180, canvasHeight + 10);
-        specButton.mousePressed(() => { _player = 2; });
+        specButton.mousePressed(() => {
+            joinTeam(null);
+        });
 
         resizeCanvas(p5);
     };
@@ -64,15 +66,24 @@ const sketch = (p5: P5) => {
 
 
         const puckDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PUCK_RADIUS * 2, y: PUCK_RADIUS * 2 });
+        const puckPosition = arenaToCanvas(canvasWidth, canvasHeight, state.puckPos);
         p5.fill("black");
-        p5.ellipse(state.puckPos.x, state.puckPos.y, puckDimensions.x, puckDimensions.y);
+        p5.ellipse(puckPosition.x, puckPosition.y, puckDimensions.x, puckDimensions.y);
 
 
         const paddleDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PADDLE_RADIUS * 2, y: PADDLE_RADIUS * 2 });
         p5.fill("red");
-        p5.ellipse(state.player1Pos.x, state.player1Pos.y, paddleDimensions.x, paddleDimensions.y);
+        for (const id in state.redPlayers) {
+            const playerPosition = state.redPlayers[id];
+            const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, playerPosition);
+            p5.ellipse(paddlePosition.x, paddlePosition.y, paddleDimensions.x, paddleDimensions.y);
+        }
         p5.fill("blue");
-        p5.ellipse(state.player2Pos.x, state.player2Pos.y, paddleDimensions.x, paddleDimensions.y);
+        for (const id in state.bluPlayers) {
+            const playerPosition = state.bluPlayers[id];
+            const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, playerPosition);
+            p5.ellipse(paddlePosition.x, paddlePosition.y, paddleDimensions.x, paddleDimensions.y);
+        }
 
         p5.textSize(32);
         p5.textAlign(p5.CENTER, p5.TOP);
@@ -90,13 +101,17 @@ function update(p5: P5) {
         y: p5.mouseY,
     };
     let arenaPosition = canvasToArena(canvasWidth, canvasHeight, canvasPosition);
-    sio.emit("updatePosition", arenaPosition, _player);
+    sio.emit("updatePosition", arenaPosition);
 }
 
 function resizeCanvas(p5: P5) {
     canvasWidth = p5.windowWidth * 0.75;
     canvasHeight = p5.windowHeight * 0.75;
     p5.resizeCanvas(canvasWidth, canvasHeight);
+}
+
+function joinTeam(team: number) {
+    sio.emit("joinTeam", team);
 }
 
 new P5(sketch);

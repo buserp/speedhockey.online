@@ -26,26 +26,22 @@ let puck = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PUCK_RADIUS, {
     mass: 20.0,
 });
 
-let player1 = Bodies.circle(0 + PADDLE_RADIUS, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
-let player2 = Bodies.circle(ARENA_WIDTH - PADDLE_RADIUS, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: true });
+const ground = Bodies.rectangle(ARENA_WIDTH / 2, ARENA_HEIGHT + wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
+const ceiling = Bodies.rectangle(ARENA_WIDTH / 2, -wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
 
-
-let ground = Bodies.rectangle(ARENA_WIDTH / 2, ARENA_HEIGHT + wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
-let ceiling = Bodies.rectangle(ARENA_WIDTH / 2, -wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
-
-Composite.add(engine.world, [puck, ground, ceiling, player1, player2]);
+Composite.add(engine.world, [puck, ground, ceiling]);
 
 
 let state: GameState = {
     puckPos: puck.position,
-    player1Pos: player1.position,
-    player2Pos: player2.position,
+    redPlayers: {},
+    bluPlayers: {},
     redScore: 0,
     bluScore: 0,
 };
 
 io.on("connect", (socket) => {
-    socket.on("updatePosition", (pos: Vector2, playerNumber: number) => {
+    socket.on("updatePosition", (pos: Vector2) => {
         const player = playerNumber == 0 ? player1 : player2;
 
         pos.y = clamp(pos.y, 0, ARENA_HEIGHT);
