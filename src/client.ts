@@ -5,8 +5,8 @@ import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, canvasToArena, a
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
 
 let _player = 2;
-let canvasWidth = 640;
-let canvasHeight = 480;
+let canvasWidth = ARENA_WIDTH;
+let canvasHeight = ARENA_HEIGHT;
 
 let state: GameState = {
     puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },

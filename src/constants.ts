@@ -25,3 +25,7 @@ export function arenaToCanvas(canvasWidth: number, canvasHeight: number, pos: Ve
         y: pos.y * yScaleFactor,
     };
 };
+
+export function clamp(val: number, low: number, high: number): number {
+    return Math.max(Math.min(val, high), low);
+};
