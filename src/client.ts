@@ -51,6 +51,8 @@ const sketch = (p5: P5) => {
         let specButton = p5.createButton('Spectate');
         specButton.position(180, canvasHeight + 10);
         specButton.mousePressed(() => { _player = 2; });
+
+        resizeCanvas(p5);
     };
 
     // The sketch draw method
@@ -92,8 +94,8 @@ function update(p5: P5) {
 }
 
 function resizeCanvas(p5: P5) {
-    canvasWidth = p5.windowWidth;
-    canvasHeight = p5.windowHeight;
+    canvasWidth = p5.windowWidth * 0.75;
+    canvasHeight = p5.windowHeight * 0.75;
     p5.resizeCanvas(canvasWidth, canvasHeight);
 }
 
