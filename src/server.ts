@@ -1,6 +1,8 @@
-import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE, clamp } from "./constants";
+
 import { Bodies, Composite, Engine, Body } from "matter-js";
 import { Server } from "socket.io";
+import { ClientToServerEvents, GameState, InterServerEvents, ServerToClientEvents, SocketData, Vector2, Player, Team } from "./types";
+import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE, clamp } from "./constants";
 
 
 const engine = Engine.create({ gravity: { y: 0 } });
@@ -31,44 +33,61 @@ const ceiling = Bodies.rectangle(ARENA_WIDTH / 2, -wall_thickness / 2, ARENA_WID
 
 Composite.add(engine.world, [puck, ground, ceiling]);
 
+let playerBodies: { [id: string]: Body } = {};
+
 
 let state: GameState = {
     puckPos: puck.position,
-    redPlayers: {},
-    bluPlayers: {},
+    players: {},
     redScore: 0,
     bluScore: 0,
 };
 
 io.on("connect", (socket) => {
+
+    state.players[socket.id] = {
+        position: { x: 0, y: 0 },
+        team: Team.SPECTATOR,
+    };
+
+    const playerBody = Bodies.circle(0, 0, PADDLE_RADIUS, { isStatic: true });
+    playerBodies[socket.id] = playerBody;
+    Composite.add(engine.world, playerBody);
+
+
+
+    socket.on("joinTeam", (team: Team) => {
+        state.players[socket.id].team = team;
+    });
+
     socket.on("updatePosition", (pos: Vector2) => {
-        const player = playerNumber == 0 ? player1 : player2;
-
-        pos.y = clamp(pos.y, 0, ARENA_HEIGHT);
-        if (player == player1) {
-            pos.x = clamp(pos.x, 0, ARENA_WIDTH / 2);
-        } else {
-            pos.x = clamp(pos.x, ARENA_WIDTH / 2, ARENA_WIDTH);
+        if (state.players[socket.id].team == Team.SPECTATOR) {
+            return;
         }
-
-        const deltaX = pos.x - player.position.x;
-        const deltaY = pos.y - player.position.y;
+        const deltaX = pos.x - playerBody.position.x;
+        const deltaY = pos.y - playerBody.position.y;
         const distance = Math.sqrt(deltaX ** 2 + deltaY ** 2);
 
         if (distance > MAX_PLAYER_MOVE_DISTANCE) {
             const directionX = deltaX / distance;
             const directionY = deltaY / distance;
-            const newX = player.position.x + directionX * MAX_PLAYER_MOVE_DISTANCE;
-            const newY = player.position.y + directionY * MAX_PLAYER_MOVE_DISTANCE;
+            const newX = playerBody.position.x + directionX * MAX_PLAYER_MOVE_DISTANCE;
+            const newY = playerBody.position.y + directionY * MAX_PLAYER_MOVE_DISTANCE;
             // @ts-ignore (needed because type definitions for MatterJS are not correct)
-            Body.setPosition(player, { x: newX, y: newY }, true);
+            Body.setPosition(playerBody, { x: newX, y: newY }, true);
         } else {
             // @ts-ignore (needed because type definitions for MatterJS are not correct)
-            Body.setPosition(player, pos, true);
+            Body.setPosition(playerBody, pos, true);
         }
 
-    })
-})
+    });
+
+    socket.on("disconnect", (_) => {
+        delete state.players[socket.id];
+        delete playerBodies[socket.id];
+    });
+});
+
 
 function resetPuck() {
     Body.setPosition(puck, { x: ARENA_WIDTH / 2, y: Math.random() * ARENA_HEIGHT });
@@ -88,8 +107,10 @@ function tick(dt: number) {
     }
     puck.position.y = clamp(puck.position.y, 0, ARENA_HEIGHT);
     state.puckPos = puck.position;
-    state.player1Pos = player1.position;
-    state.player2Pos = player2.position;
+    for (const id in playerBodies) {
+        const playerBody = playerBodies[id];
+        state.players[id].position = playerBody.position;
+    }
     io.emit("updateGameState", state);
 }
 

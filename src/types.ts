@@ -1,24 +1,34 @@
-interface ServerToClientEvents {
+export interface ServerToClientEvents {
     updateGameState: (state: GameState) => void;
 }
 
-interface ClientToServerEvents {
+export interface ClientToServerEvents {
     updatePosition: (pos: Vector2) => void;
-    joinTeam: (team: number | null) => void;
+    joinTeam: (team: Team) => void;
 }
 
-interface InterServerEvents { }
-interface SocketData { }
+export interface InterServerEvents { }
+export interface SocketData { }
 
-type Vector2 = {
+export type Vector2 = {
     x: number,
     y: number,
 };
 
-type GameState = {
+export type Player = {
+    position: Vector2,
+    team: Team,
+};
+
+export enum Team {
+    SPECTATOR = -1,
+    RED,
+    BLU,
+};
+
+export type GameState = {
     puckPos: Vector2,
-    redPlayers: { [id: string]: Vector2 },
-    bluPlayers: { [id: string]: Vector2 },
+    players: { [id: string]: Player },
     redScore: number,
     bluScore: number,
 };

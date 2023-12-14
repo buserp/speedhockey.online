@@ -1,4 +1,5 @@
 import { Socket, io } from "socket.io-client";
+import { ClientToServerEvents, GameState, ServerToClientEvents, Team } from "./types";
 import P5 from "p5";
 import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, canvasToArena, arenaToCanvas } from "./constants";
 
@@ -9,8 +10,7 @@ let canvasHeight = ARENA_HEIGHT;
 
 let state: GameState = {
     puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
-    redPlayers: {},
-    bluPlayers: {},
+    players: {},
     redScore: 0,
     bluScore: 0,
 };
@@ -39,19 +39,19 @@ const sketch = (p5: P5) => {
         let redButton = p5.createButton('Red');
         redButton.position(20, canvasHeight + 10);
         redButton.mousePressed(() => {
-            joinTeam(0);
+            joinTeam(Team.RED);
         });
 
         let blueButton = p5.createButton('Blue');
         blueButton.position(100, canvasHeight + 10);
         blueButton.mousePressed(() => {
-            joinTeam(1);
+            joinTeam(Team.BLU);
         });
 
         let specButton = p5.createButton('Spectate');
         specButton.position(180, canvasHeight + 10);
         specButton.mousePressed(() => {
-            joinTeam(null);
+            joinTeam(Team.SPECTATOR);
         });
 
         resizeCanvas(p5);
@@ -64,7 +64,6 @@ const sketch = (p5: P5) => {
 
         p5.line(canvasWidth / 2, 0, canvasWidth / 2, canvasHeight);
 
-
         const puckDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PUCK_RADIUS * 2, y: PUCK_RADIUS * 2 });
         const puckPosition = arenaToCanvas(canvasWidth, canvasHeight, state.puckPos);
         p5.fill("black");
@@ -72,16 +71,15 @@ const sketch = (p5: P5) => {
 
 
         const paddleDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PADDLE_RADIUS * 2, y: PADDLE_RADIUS * 2 });
-        p5.fill("red");
-        for (const id in state.redPlayers) {
-            const playerPosition = state.redPlayers[id];
-            const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, playerPosition);
-            p5.ellipse(paddlePosition.x, paddlePosition.y, paddleDimensions.x, paddleDimensions.y);
-        }
-        p5.fill("blue");
-        for (const id in state.bluPlayers) {
-            const playerPosition = state.bluPlayers[id];
-            const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, playerPosition);
+
+        for (const id in state.players) {
+            const player = state.players[id];
+            if (player.team == Team.RED) {
+                p5.fill("red");
+            } else if (player.team == Team.BLU) {
+                p5.fill("blue");
+            }
+            const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, player.position);
             p5.ellipse(paddlePosition.x, paddlePosition.y, paddleDimensions.x, paddleDimensions.y);
         }
 
