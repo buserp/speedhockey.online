@@ -1,0 +1,14 @@
+[package]
+name = "speedhockey-backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.80"
+rapier2d = "0.18.0"
+tokio = { version = "1.36.0", features = ["rt", "rt-multi-thread"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+wtransport = "0.1.11"
