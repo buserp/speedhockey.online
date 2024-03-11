@@ -1,7 +1,7 @@
 // Adds an entry to the event log on the page, optionally applying a specified
 // CSS class.
 
-const HASH = new Uint8Array([173, 199, 190, 19, 233, 88, 145, 77, 230, 29, 207, 105, 205, 139, 84, 84, 255, 49, 104, 76, 233, 253, 62, 110, 28, 143, 148, 53, 155, 17, 111, 126]);
+const HASH = new Uint8Array([196, 172, 34, 97, 82, 97, 96, 87, 238, 151, 205, 161, 147, 33, 125, 204, 197, 41, 220, 20, 6, 111, 195, 165, 131, 191, 213, 138, 196, 44, 224, 105]);
 
 let currentTransport, streamNumber, currentTransportDatagramWriter;
 
