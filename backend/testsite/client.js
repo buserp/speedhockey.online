@@ -1,7 +1,8 @@
 // Adds an entry to the event log on the page, optionally applying a specified
 // CSS class.
+// 
 
-const HASH = new Uint8Array([196, 172, 34, 97, 82, 97, 96, 87, 238, 151, 205, 161, 147, 33, 125, 204, 197, 41, 220, 20, 6, 111, 195, 165, 131, 191, 213, 138, 196, 44, 224, 105]);
+const HASH = new Uint8Array(${CERT_DIGEST});
 
 let currentTransport, streamNumber, currentTransportDatagramWriter;
 
@@ -10,7 +11,6 @@ async function connect() {
   const url = document.getElementById('url').value;
   try {
     var transport = new WebTransport(url, { serverCertificateHashes: [ { algorithm: "sha-256", value: HASH.buffer } ] } );
-    // var transport = new WebTransport(url);
     addToEventLog('Initiating connection...');
   } catch (e) {
     addToEventLog('Failed to create connection object. ' + e, 'error');

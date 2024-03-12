@@ -1,12 +1,14 @@
-import { Socket, io } from "socket.io-client";
 import { ClientToServerEvents, GameState, ServerToClientEvents, Team } from "./types";
 import P5 from "p5";
 import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, canvasToArena, arenaToCanvas } from "./constants";
 
-const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
+
+const HASH = new Uint8Array(JSON.parse(process.env.CERT_DIGEST));
 
 let canvasWidth = ARENA_WIDTH;
 let canvasHeight = ARENA_HEIGHT;
+
+let currentTransport, streamNumber, currentTransportDatagramWriter;
 
 let state: GameState = {
     puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
@@ -15,12 +17,10 @@ let state: GameState = {
     bluScore: 0,
 };
 
-sio.on("updateGameState", (newState: GameState) => {
-    state = newState;
-});
-
 const sketch = (p5: P5) => {
     p5.setup = () => {
+        const url = "https://localhost:" + process.env.WEBTRANSPORT_PORT
+        let transport = new WebTransport(url, { serverCertificateHashes: [ { algorithm: "sha-256", value: HASH.buffer } ] } );
         // Creating and positioning the canvas
         const canvas = p5.createCanvas(canvasWidth, canvasHeight);
         canvas.parent("app");
