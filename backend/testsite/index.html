@@ -2,8 +2,7 @@
 <html lang="en">
   <title>WTransport-Example</title>
   <meta charset="utf-8">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.1/p5.min.js"></script>
-  <script type="module" src="client.js"></script>
+  <script src="client.js"></script>
   <link rel="stylesheet" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <body>
@@ -16,7 +15,7 @@
       <h2>Establish WebTransport connection</h2>
       <div class="input-line">
         <label for="url">URL:</label>
-        <input type="text" name="url" id="url" value="https://localhost:${WEBTRANSPORT_PORT}/">
+        <input type="text" name="url" id="url" value="https://speedhockey.development:4433/">
         <input type="button" id="connect" value="Connect" onclick="connect()">
       </div>
     </div>

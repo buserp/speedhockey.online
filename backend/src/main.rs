@@ -1,6 +1,6 @@
 use anyhow::Context;
 use anyhow::Result;
-// use http::HttpServer;
+use http::HttpServer;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, watch};
 use tokio::time;
@@ -193,18 +193,21 @@ async fn main() -> Result<()> {
     utils::init_logging();
 
     let certificate = Certificate::self_signed(["localhost", "127.0.0.1", "::1"]);
+    // let certificate = Certificate::load("speedhockey.development.pem", "speedhockey.development-key.pem")
+        // .await
+        // .expect("should load certificate");
     let cert_digest = certificate.hashes().pop().unwrap();
 
-    let webtransport_server = WebTransportServer::new(certificate)?;
+    let webtransport_server = WebTransportServer::new(certificate, 4433)?;
     
     let v2: interface::Vector2 = interface::Vector2::default();
     info!("{:?}", v2);
-    // let http_server = HttpServer::new(&cert_digest, webtransport_server.local_port()).await?;
+    let http_server = HttpServer::new(&cert_digest, webtransport_server.local_port()).await?;
 
-    // info!(
-    //     "Open Google Chrome and go to: http://127.0.0.1:{}",
-    //     http_server.local_port()
-    // );
+    info!(
+        "Open Google Chrome and go to: http://127.0.0.1:{}",
+        http_server.local_port()
+    );
 
     info!(
         "CERT_DIGEST: {}\nWEBTRANSPORT_PORT: {}",
@@ -217,9 +220,9 @@ async fn main() -> Result<()> {
     let mut physics_engine = PhysicsEngine::new();
 
     tokio::select! {
-        // result = http_server.serve() => {
-        //     error!("HTTP server: {:?}", result);
-        // }
+        result = http_server.serve() => {
+            error!("HTTP server: {:?}", result);
+        }
         result = webtransport_server.serve(phys_rx.clone(), update_tx.clone()) => {
             error!("WebTransport server: {:?}", result);
         }
@@ -234,6 +237,9 @@ async fn main() -> Result<()> {
 
 mod webtransport {
     use super::*;
+    use std::net::IpAddr;
+    use std::net::Ipv4Addr;
+    use std::net::SocketAddr;
     use std::time::Duration;
     use wtransport::endpoint::endpoint_side::Server;
     use wtransport::endpoint::IncomingSession;
@@ -245,9 +251,9 @@ mod webtransport {
     }
 
     impl WebTransportServer {
-        pub fn new(certificate: Certificate) -> Result<Self> {
+        pub fn new(certificate: Certificate, listening_port: u16) -> Result<Self> {
             let config = ServerConfig::builder()
-                .with_bind_default(0)
+                .with_bind_address(SocketAddr::new(Ipv4Addr::new(0,0,0,0).into(), 4433))
                 .with_certificate(certificate)
                 .keep_alive_interval(Some(Duration::from_secs(3)))
                 .build();
@@ -320,92 +326,92 @@ mod webtransport {
     }
 }
 
-// mod http {
-//     use super::*;
-//     use axum::http::header::CONTENT_TYPE;
-//     use axum::response::Html;
-//     use axum::routing::get;
-//     use axum::serve;
-//     use axum::serve::Serve;
-//     use axum::Router;
-//     use std::net::Ipv4Addr;
-//     use std::net::SocketAddr;
-//     use tokio::net::TcpListener;
+mod http {
+    use super::*;
+    use axum::http::header::CONTENT_TYPE;
+    use axum::response::Html;
+    use axum::routing::get;
+    use axum::serve;
+    use axum::serve::Serve;
+    use axum::Router;
+    use std::net::Ipv4Addr;
+    use std::net::SocketAddr;
+    use tokio::net::TcpListener;
 
-//     pub struct HttpServer {
-//         serve: Serve<Router, Router>,
-//         local_port: u16,
-//     }
+    pub struct HttpServer {
+        serve: Serve<Router, Router>,
+        local_port: u16,
+    }
 
-//     impl HttpServer {
-//         const PORT: u16 = 8080;
+    impl HttpServer {
+        const PORT: u16 = 8080;
 
-//         pub async fn new(cert_digest: &Sha256Digest, webtransport_port: u16) -> Result<Self> {
-//             let router = Self::build_router(cert_digest, webtransport_port);
+        pub async fn new(cert_digest: &Sha256Digest, webtransport_port: u16) -> Result<Self> {
+            let router = Self::build_router(cert_digest, webtransport_port);
 
-//             let listener =
-//                 TcpListener::bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), Self::PORT))
-//                     .await
-//                     .context("Cannot bind TCP listener for HTTP server")?;
+            let listener =
+                TcpListener::bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), Self::PORT))
+                    .await
+                    .context("Cannot bind TCP listener for HTTP server")?;
 
-//             let local_port = listener
-//                 .local_addr()
-//                 .context("Cannot get local port")?
-//                 .port();
+            let local_port = listener
+                .local_addr()
+                .context("Cannot get local port")?
+                .port();
 
-//             Ok(HttpServer {
-//                 serve: serve(listener, router),
-//                 local_port,
-//             })
-//         }
+            Ok(HttpServer {
+                serve: serve(listener, router),
+                local_port,
+            })
+        }
 
-//         pub fn local_port(&self) -> u16 {
-//             self.local_port
-//         }
+        pub fn local_port(&self) -> u16 {
+            self.local_port
+        }
 
-//         pub async fn serve(self) -> Result<()> {
-//             info!("Server running on port {}", self.local_port());
+        pub async fn serve(self) -> Result<()> {
+            info!("Server running on port {}", self.local_port());
 
-//             self.serve.await.context("HTTP server error")?;
+            self.serve.await.context("HTTP server error")?;
 
-//             Ok(())
-//         }
+            Ok(())
+        }
 
-//         fn build_router(cert_digest: &Sha256Digest, webtransport_port: u16) -> Router {
-//             let cert_digest = cert_digest.fmt(Sha256DigestFmt::BytesArray);
+        fn build_router(cert_digest: &Sha256Digest, webtransport_port: u16) -> Router {
+            let cert_digest = cert_digest.fmt(Sha256DigestFmt::BytesArray);
 
-//             let root = move || async move {
-//                 Html(
-//                     std::fs::read_to_string("testsite/index.html")
-//                         .expect("index.html should be readable")
-//                         .replace("${WEBTRANSPORT_PORT}", &webtransport_port.to_string()),
-//                 )
-//             };
+            let root = move || async move {
+                Html(
+                    std::fs::read_to_string("testsite/index.html")
+                        .expect("index.html should be readable")
+                        .replace("${WEBTRANSPORT_PORT}", &webtransport_port.to_string()),
+                )
+            };
 
-//             let style = move || async move {
-//                 (
-//                     [(CONTENT_TYPE, "text/css")],
-//                     std::fs::read_to_string("testsite/style.css")
-//                         .expect("style.css should be readble"),
-//                 )
-//             };
+            let style = move || async move {
+                (
+                    [(CONTENT_TYPE, "text/css")],
+                    std::fs::read_to_string("testsite/style.css")
+                        .expect("style.css should be readble"),
+                )
+            };
 
-//             let client = move || async move {
-//                 (
-//                     [(CONTENT_TYPE, "application/javascript")],
-//                     std::fs::read_to_string("testsite/client.js")
-//                         .expect("client.js should be readable")
-//                         .replace("${CERT_DIGEST}", &cert_digest),
-//                 )
-//             };
+            let client = move || async move {
+                (
+                    [(CONTENT_TYPE, "application/javascript")],
+                    std::fs::read_to_string("testsite/client.js")
+                        .expect("client.js should be readable")
+                        .replace("${CERT_DIGEST}", &cert_digest),
+                )
+            };
 
-//             Router::new()
-//                 .route("/", get(root))
-//                 .route("/style.css", get(style))
-//                 .route("/client.js", get(client))
-//         }
-//     }
-// }
+            Router::new()
+                .route("/", get(root))
+                .route("/style.css", get(style))
+                .route("/client.js", get(client))
+        }
+    }
+}
 
 mod utils {
     use tracing_subscriber::filter::LevelFilter;

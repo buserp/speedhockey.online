@@ -2,7 +2,7 @@
   "name": "speedhockey.online",
   "version": "1.0.0",
   "scripts": {
-    "prebuild": "protoc '--plugin=protoc-gen-ts_proto=.\\node_modules\\.bin\\protoc-gen-ts_proto.cmd' --ts_proto_out=. ./speedhockey-backend/src/interface.proto",
+    "prebuild": "protoc --plugin=protoc-gen-ts_proto=.\\node_modules\\.bin\\protoc-gen-ts_proto.cmd --ts_proto_out=src --proto_path='..' '..\\interface.proto'",
     "build": "cross-env NODE_ENV=production parcel build src/index.html",
     "start": "cross-env NODE_ENV=development parcel src/index.html",
     "serve": "tsc && node --env-file=.env.production dist/server.js",
