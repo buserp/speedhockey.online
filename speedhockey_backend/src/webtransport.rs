@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tokio::sync::{mpsc, watch};
 use tracing::info;
-use std::net::IpAddr;
+
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -44,7 +44,7 @@ impl WebTransportServer {
     ) -> Result<()> {
         info!("Server running on port {}", self.local_port());
 
-        for id in 0.. {
+        for _id in 0.. {
             let incoming_session = self.endpoint.accept().await;
 
             tokio::spawn(
@@ -61,7 +61,7 @@ impl WebTransportServer {
     async fn handle_incoming_session(
         incoming_session: IncomingSession,
         mut phys_rx: watch::Receiver<String>,
-        mut update_tx: mpsc::Sender<EngineMessage>,
+        update_tx: mpsc::Sender<EngineMessage>,
     ) -> Result<()> {
         let session_request = incoming_session.await?;
 
