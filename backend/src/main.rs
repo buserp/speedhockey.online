@@ -192,14 +192,17 @@ pub mod interface {
 async fn main() -> Result<()> {
     utils::init_logging();
 
-    let certificate = Certificate::self_signed(["localhost", "127.0.0.1", "::1"]);
-    // let certificate = Certificate::load("speedhockey.development.pem", "speedhockey.development-key.pem")
-        // .await
-        // .expect("should load certificate");
+    // let certificate = Certificate::self_signed(["localhost", "127.0.0.1", "::1"]);
+    let certificate = Certificate::load(
+        "/etc/letsencrypt/live/socket.speedhockey.online/cert.pem",
+        "/etc/letsencrypt/live/socket.speedhockey.online/privkey.pem",
+    )
+    .await
+    .expect("should load certificate");
     let cert_digest = certificate.hashes().pop().unwrap();
 
-    let webtransport_server = WebTransportServer::new(certificate, 4433)?;
-    
+    let webtransport_server = WebTransportServer::new(certificate, 27015)?;
+
     let v2: interface::Vector2 = interface::Vector2::default();
     info!("{:?}", v2);
     let http_server = HttpServer::new(&cert_digest, webtransport_server.local_port()).await?;
@@ -253,7 +256,10 @@ mod webtransport {
     impl WebTransportServer {
         pub fn new(certificate: Certificate, listening_port: u16) -> Result<Self> {
             let config = ServerConfig::builder()
-                .with_bind_address(SocketAddr::new(Ipv4Addr::new(0,0,0,0).into(), 4433))
+                .with_bind_address(SocketAddr::new(
+                    Ipv4Addr::new(0, 0, 0, 0).into(),
+                    listening_port,
+                ))
                 .with_certificate(certificate)
                 .keep_alive_interval(Some(Duration::from_secs(3)))
                 .build();
