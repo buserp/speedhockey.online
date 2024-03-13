@@ -1,7 +1,11 @@
+use std::io::Read;
+use std::io::Write;
+use std::path::Path;
+
 use anyhow::Context;
 use anyhow::Result;
 use http::HttpServer;
-use serde::{Deserialize, Serialize};
+use rapier2d::prelude::*;
 use tokio::sync::{mpsc, watch};
 use tokio::time;
 use tokio::time::{sleep, Duration};
@@ -14,11 +18,13 @@ use wtransport::tls::Sha256Digest;
 use wtransport::tls::Sha256DigestFmt;
 use wtransport::Certificate;
 
-use rapier2d::prelude::*;
+use certificate_serde;
 
 const BUFFER_SIZE: usize = 128;
 /// 60 Hz
 const FRAME_RATE: Duration = Duration::from_micros(16670);
+
+const DIGEST_FILENAME: &str = "cert_digest.txt";
 
 enum EngineMessage {
     Add,
@@ -192,13 +198,16 @@ pub mod interface {
 async fn main() -> Result<()> {
     utils::init_logging();
 
-    // let certificate = Certificate::self_signed(["localhost", "127.0.0.1", "::1"]);
-    let certificate = Certificate::load(
-        "/etc/letsencrypt/live/socket.speedhockey.online/cert.pem",
-        "/etc/letsencrypt/live/socket.speedhockey.online/privkey.pem",
-    )
-    .await
-    .expect("should load certificate");
+    let out_dir = env!("OUT_DIR");
+    let cert_path = Path::new(out_dir).join(certificate_serde::LOCAL_CERT_NAME);
+    let cert_data = std::fs::read_to_string(cert_path).expect("local cert path must be readable");
+    let certificate = certificate_serde::deserialize_cert(cert_data);
+    // let certificate = Certificate::load(
+    //     "/etc/letsencrypt/live/socket.speedhockey.online/cert.pem",
+    //     "/etc/letsencrypt/live/socket.speedhockey.online/privkey.pem",
+    // )
+    // .await
+    // .expect("should load certificate");
     let cert_digest = certificate.hashes().pop().unwrap();
 
     let webtransport_server = WebTransportServer::new(certificate, 27015)?;
@@ -212,11 +221,20 @@ async fn main() -> Result<()> {
         http_server.local_port()
     );
 
-    info!(
-        "CERT_DIGEST: {}\nWEBTRANSPORT_PORT: {}",
-        cert_digest.fmt(Sha256DigestFmt::BytesArray),
-        webtransport_server.local_port(),
-    );
+    let cert_digest = cert_digest.fmt(Sha256DigestFmt::BytesArray);
+
+    let cwd = std::env::current_dir().expect("cwd to be findable");
+
+    let digest_path = cwd
+        .parent()
+        .expect("parent to be findable")
+        .join(Path::new(DIGEST_FILENAME));
+
+    info!("writing cert digest to {}", digest_path.display());
+    std::fs::File::create(digest_path)
+        .expect("file to be openable")
+        .write_all(cert_digest.as_bytes())
+        .expect("file to be writable");
 
     let (phys_tx, phys_rx) = watch::channel(String::new());
     let (update_tx, update_rx) = mpsc::channel(BUFFER_SIZE);

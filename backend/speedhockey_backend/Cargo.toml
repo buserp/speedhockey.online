@@ -1,5 +1,5 @@
 [package]
-name = "speedhockey-backend"
+name = "speedhockey_backend"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,12 +11,21 @@ axum = "0.7.4"
 prost = "0.12.3"
 rapier2d = "0.18.0"
 serde = { version = "1.0.197", features = ["derive"] }
-tokio = { version = "1.36.0", features = ["rt", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.36.0", features = [
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 wtransport = "0.1.11"
+certificate_serde = { path = "../certificate_serde" }
 
 [build-dependencies]
 wtransport = "0.1.11"
 prost-build = "0.12.3"
 npm_rs = "1.0.0"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+certificate_serde = { path = "../certificate_serde" }
