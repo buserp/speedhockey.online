@@ -24,7 +24,6 @@ const BUFFER_SIZE: usize = 128;
 /// 60 Hz
 const FRAME_RATE: Duration = Duration::from_micros(16670);
 
-const DIGEST_FILENAME: &str = "cert_digest.txt";
 
 enum EngineMessage {
     Add,
@@ -221,20 +220,6 @@ async fn main() -> Result<()> {
         http_server.local_port()
     );
 
-    let cert_digest = cert_digest.fmt(Sha256DigestFmt::BytesArray);
-
-    let cwd = std::env::current_dir().expect("cwd to be findable");
-
-    let digest_path = cwd
-        .parent()
-        .expect("parent to be findable")
-        .join(Path::new(DIGEST_FILENAME));
-
-    info!("writing cert digest to {}", digest_path.display());
-    std::fs::File::create(digest_path)
-        .expect("file to be openable")
-        .write_all(cert_digest.as_bytes())
-        .expect("file to be writable");
 
     let (phys_tx, phys_rx) = watch::channel(String::new());
     let (update_tx, update_rx) = mpsc::channel(BUFFER_SIZE);
