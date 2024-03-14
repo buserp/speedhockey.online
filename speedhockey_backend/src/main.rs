@@ -10,22 +10,15 @@ use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-
-
-
-
+mod http;
 mod physics;
 mod webtransport;
-mod http;
-
 
 const BUFFER_SIZE: usize = 128;
-
 
 pub mod interface {
     include!(concat!(env!("OUT_DIR"), "/speedhockey.interface.rs"));
 }
-
 
 pub fn init_logging() {
     let env_filter = EnvFilter::builder()
@@ -65,7 +58,6 @@ async fn main() -> Result<()> {
         "Open Google Chrome and go to: http://127.0.0.1:{}",
         http_server.local_port()
     );
-
 
     let (phys_tx, phys_rx) = watch::channel(String::new());
     let (update_tx, update_rx) = mpsc::channel(BUFFER_SIZE);

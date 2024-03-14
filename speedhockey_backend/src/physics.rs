@@ -1,9 +1,8 @@
 use rapier2d::prelude::*;
-use tracing::info;
-use tokio::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tokio::time;
-
+use tokio::time::Duration;
+use tracing::info;
 
 /// 60 Hz
 const FRAME_RATE: Duration = Duration::from_micros(16670);

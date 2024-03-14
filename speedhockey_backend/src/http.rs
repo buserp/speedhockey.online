@@ -6,12 +6,12 @@ use axum::routing::get;
 use axum::serve;
 use axum::serve::Serve;
 use axum::Router;
-use tracing::info;
-use wtransport::tls::Sha256DigestFmt;
-use wtransport::tls::Sha256Digest;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use tracing::info;
+use wtransport::tls::Sha256Digest;
+use wtransport::tls::Sha256DigestFmt;
 
 pub struct HttpServer {
     serve: Serve<Router, Router>,
@@ -24,10 +24,9 @@ impl HttpServer {
     pub async fn new(cert_digest: &Sha256Digest, webtransport_port: u16) -> Result<Self> {
         let router = Self::build_router(cert_digest, webtransport_port);
 
-        let listener =
-            TcpListener::bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), Self::PORT))
-                .await
-                .context("Cannot bind TCP listener for HTTP server")?;
+        let listener = TcpListener::bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), Self::PORT))
+            .await
+            .context("Cannot bind TCP listener for HTTP server")?;
 
         let local_port = listener
             .local_addr()
@@ -66,8 +65,7 @@ impl HttpServer {
         let style = move || async move {
             (
                 [(CONTENT_TYPE, "text/css")],
-                std::fs::read_to_string("testsite/style.css")
-                    .expect("style.css should be readble"),
+                std::fs::read_to_string("testsite/style.css").expect("style.css should be readble"),
             )
         };
 

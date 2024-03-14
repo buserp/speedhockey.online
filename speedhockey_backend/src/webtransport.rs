@@ -6,8 +6,8 @@ use std::net::Ipv4Addr;
 use std::net::SocketAddr;
 use std::time::Duration;
 use wtransport::endpoint::endpoint_side::Server;
-use wtransport::Certificate;
 use wtransport::endpoint::IncomingSession;
+use wtransport::Certificate;
 use wtransport::Endpoint;
 use wtransport::ServerConfig;
 
@@ -47,13 +47,11 @@ impl WebTransportServer {
         for _id in 0.. {
             let incoming_session = self.endpoint.accept().await;
 
-            tokio::spawn(
-                Self::handle_incoming_session(
-                    incoming_session,
-                    phys_rx.clone(),
-                    update_tx.clone(),
-                )
-            );
+            tokio::spawn(Self::handle_incoming_session(
+                incoming_session,
+                phys_rx.clone(),
+                update_tx.clone(),
+            ));
         }
         Ok(())
     }
