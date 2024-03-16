@@ -1,17 +1,19 @@
 use anyhow::Result;
+use std::io::Write;
+use std::path::Path;
+use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tracing::info;
-
-use std::net::Ipv4Addr;
-use std::net::SocketAddr;
-use std::time::Duration;
 use wtransport::endpoint::endpoint_side::Server;
 use wtransport::endpoint::IncomingSession;
+use wtransport::tls::Sha256DigestFmt;
 use wtransport::Certificate;
 use wtransport::Endpoint;
 use wtransport::ServerConfig;
 
 use crate::physics::EngineMessage;
+
+const CERT_DIGEST_PATH: &str = "../cert_digest.txt";
 
 pub struct WebTransportServer {
     endpoint: Endpoint<Server>,
@@ -19,6 +21,14 @@ pub struct WebTransportServer {
 
 impl WebTransportServer {
     pub fn new(certificate: Certificate, listening_port: u16) -> Result<Self> {
+        ctrlc::set_handler(move || {
+            let cert_digest_path = Path::new(CERT_DIGEST_PATH);
+            info!("removing {}", cert_digest_path.to_string_lossy());
+            std::fs::remove_file(cert_digest_path).expect("cert digest should be deleted");
+            std::process::exit(0);
+        })
+        .expect("Error setting Ctrl-C handler");
+        let cert_digest = certificate.hashes().pop().unwrap();
         let config = ServerConfig::builder()
             .with_bind_default(listening_port)
             .with_certificate(certificate)
@@ -26,6 +36,16 @@ impl WebTransportServer {
             .build();
 
         let endpoint = Endpoint::server(config)?;
+        let cert_digest_path = Path::new(CERT_DIGEST_PATH);
+        info!(
+            "writing cert digest to {}",
+            cert_digest_path.to_string_lossy()
+        );
+        let mut cert_digest_file =
+            std::fs::File::create(cert_digest_path).expect("cert digest hould be writable");
+        cert_digest_file
+            .write_all(cert_digest.fmt(Sha256DigestFmt::BytesArray).as_bytes())
+            .expect("cert digest whould be written to");
 
         Ok(Self { endpoint })
     }

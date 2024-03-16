@@ -93,6 +93,7 @@ impl PhysicsEngine {
         let mut count: u64 = 0;
         let gravity = vector![0.0, 0.0];
 
+        info!("starting physics engine...");
         /* Run the game loop, stepping the simulation once per frame. */
         loop {
             self.physics_pipeline.step(
