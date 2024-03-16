@@ -20,10 +20,7 @@ pub struct WebTransportServer {
 impl WebTransportServer {
     pub fn new(certificate: Certificate, listening_port: u16) -> Result<Self> {
         let config = ServerConfig::builder()
-            .with_bind_address(SocketAddr::new(
-                Ipv4Addr::new(0, 0, 0, 0).into(),
-                listening_port,
-            ))
+            .with_bind_default(listening_port)
             .with_certificate(certificate)
             .keep_alive_interval(Some(Duration::from_secs(3)))
             .build();
