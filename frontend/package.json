@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "build": "run-script-os",
-    "build:win32": "set NODE_ENV='development' && parcel build src\\index.html",
-    "build:nix": "NODE_ENV=development && parcel build src/index.html",
+    "build:win32": "set NODE_ENV='development' && parcel build --no-cache src\\index.html",
+    "build:nix": "NODE_ENV=development && parcel build --no-cache src/index.html",
     "prebuild:nix": "./compile_proto.sh",
     "prebuild:win32": "powershell .\\prebuild.ps1",
     "start": "run-script-os",
-    "start:win32": "set NODE_ENV='development' && parcel src/index.html",
-    "start:nix": "NODE_ENV=development && parcel src/index.html",
+    "start:win32": "set NODE_ENV='development' && parcel --no-cache src/index.html",
+    "start:nix": "NODE_ENV=development && parcel --no-cache src/index.html",
     "prestart:nix": "./compile_proto.sh",
     "prestart:win32": "powershell .\\prebuild.ps1"
   },

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use prost::Message;
 use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
@@ -10,8 +11,11 @@ use wtransport::tls::Sha256DigestFmt;
 use wtransport::Certificate;
 use wtransport::Endpoint;
 use wtransport::ServerConfig;
+use crate::speedhockey_interface::ObjectsUpdate;
 
-use crate::physics::EngineMessage;
+use crate::physics::EngineInputMessage;
+use crate::physics::EngineOutputMessage;
+use crate::physics::PUCK_ID;
 
 const CERT_DIGEST_PATH: &str = "../cert_digest.txt";
 
@@ -56,8 +60,8 @@ impl WebTransportServer {
 
     pub async fn serve(
         self,
-        phys_rx: watch::Receiver<String>,
-        update_tx: mpsc::Sender<EngineMessage>,
+        engine_output_rx: watch::Receiver<EngineOutputMessage>,
+        engine_input_tx: mpsc::Sender<EngineInputMessage>,
     ) -> Result<()> {
         info!("Server running on port {}", self.local_port());
 
@@ -66,8 +70,8 @@ impl WebTransportServer {
 
             tokio::spawn(Self::handle_incoming_session(
                 incoming_session,
-                phys_rx.clone(),
-                update_tx.clone(),
+                engine_output_rx.clone(),
+                engine_input_tx.clone(),
             ));
         }
         Ok(())
@@ -75,33 +79,35 @@ impl WebTransportServer {
 
     async fn handle_incoming_session(
         incoming_session: IncomingSession,
-        mut phys_rx: watch::Receiver<String>,
-        update_tx: mpsc::Sender<EngineMessage>,
+        mut engine_output_rx: watch::Receiver<EngineOutputMessage>,
+        engine_input_tx: mpsc::Sender<EngineInputMessage>,
     ) -> Result<()> {
         let session_request = incoming_session.await?;
 
         let connection = session_request.accept().await?;
         info!("{} connected", connection.stable_id());
+        engine_input_tx.send(EngineInputMessage::AddPlayer(connection.stable_id() as u64)).await?;
 
         loop {
             tokio::select! {
-                _ = phys_rx.changed() => {
-                    let update = format!("{}", *phys_rx.borrow_and_update());
-                    connection.send_datagram(update)?;
+                _ = engine_output_rx.changed() => {
+                    let update = engine_output_rx.borrow_and_update();
+                    let objects = ObjectsUpdate {
+                        players: vec![],
+                        puck_pos: Some(update.get(&PUCK_ID).unwrap().clone()),
+                    };
+                    connection.send_datagram(objects.encode_to_vec())?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
                     let str_data = std::str::from_utf8(&dgram)?;
 
                     info!("Received (dgram) '{str_data}' from client");
-                    if str_data.starts_with("add") {
-                        update_tx.send(EngineMessage::Add).await?;
-                    }
-
                     connection.send_datagram(b"ACK")?;
                 }
                 reason = connection.closed() => {
                     info!("{} disconnected: {}", connection.stable_id(), reason);
+                    engine_input_tx.send(EngineInputMessage::RemovePlayer(connection.stable_id() as u64)).await?;
                     return Ok(());
                 }
             }

@@ -12,7 +12,7 @@ mod webtransport;
 const BUFFER_SIZE: usize = 128;
 const WTRANSPORT_PORT: u16 = 27015;
 
-pub mod interface {
+pub mod speedhockey_interface {
     include!(concat!(env!("OUT_DIR"), "/speedhockey.interface.rs"));
 }
 
@@ -42,15 +42,15 @@ async fn main() -> Result<()> {
 
     let webtransport_server = webtransport::WebTransportServer::new(certificate, WTRANSPORT_PORT)?;
 
-    let (phys_tx, phys_rx) = watch::channel(String::new());
-    let (update_tx, update_rx) = mpsc::channel(BUFFER_SIZE);
+    let (engine_output_tx, engine_output_rx) = watch::channel(physics::EngineOutputMessage::new());
+    let (engine_input_tx, engine_input_rx) = mpsc::channel(BUFFER_SIZE);
     let mut physics_engine = physics::PhysicsEngine::new();
 
     tokio::select! {
-        result = webtransport_server.serve(phys_rx.clone(), update_tx.clone()) => {
+        result = webtransport_server.serve(engine_output_rx, engine_input_tx) => {
             error!("WebTransport server: {:?}", result);
         }
-        result = physics_engine.run(phys_tx, update_rx) => {
+        result = physics_engine.run(engine_output_tx, engine_input_rx) => {
             info!("physics engine: {:?}", result);
         }
 

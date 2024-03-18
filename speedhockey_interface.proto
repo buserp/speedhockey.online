@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package speedhockey.interface;
+
+message Vector2 {
+  float x = 1;
+  float y = 2;
+}
+
+enum Team {
+  SPECTATOR = 0;
+  RED = 1;
+  BLU = 2;
+}
+
+message Player {
+  uint64 id = 1;
+  Vector2 position = 2;
+  Team team = 3;
+}
+
+message ObjectsUpdate {
+  Vector2 puck_pos = 1;
+  repeated Player players = 2;
+}
+
+message ScoreUpdate {
+  uint32 red_score = 1;
+  uint32 blu_score = 2;
+}

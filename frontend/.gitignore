@@ -8,6 +8,7 @@ node_modules/
 # Transpiled files
 build/
 dist/
+speedhockey_interface.ts
 
 # Optional npm cache directory
 .npm

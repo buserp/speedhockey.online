@@ -1,16 +1,23 @@
 use rapier2d::prelude::*;
+use std::collections::HashMap;
 use tokio::sync::{mpsc, watch};
 use tokio::time;
 use tokio::time::Duration;
 use tracing::info;
 
+use crate::speedhockey_interface::Vector2;
+
 /// 60 Hz
 const FRAME_RATE: Duration = Duration::from_micros(16670);
+pub const PUCK_ID: u64 = 0;
 
-pub enum EngineMessage {
-    Add,
-    Remove(RigidBodyHandle),
+pub enum EngineInputMessage {
+    AddPlayer(u64),
+    MovePlayer(u64, Vector2),
+    RemovePlayer(u64),
 }
+
+pub type EngineOutputMessage = HashMap<u64, Vector2>;
 
 pub struct PhysicsEngine {
     rigid_body_set: RigidBodySet,
@@ -27,14 +34,15 @@ pub struct PhysicsEngine {
     physics_hooks: (),
     event_handler: (),
     puck_body_handle: RigidBodyHandle,
+    objects: HashMap<u64, RigidBodyHandle>,
 }
 
 impl PhysicsEngine {
     pub fn new() -> Self {
         let mut rigid_body_set = RigidBodySet::new();
         let mut collider_set = ColliderSet::new();
+        let mut objects: HashMap<u64, RigidBodyHandle> = HashMap::new();
 
-        /* Create the ground. */
         let floor = ColliderBuilder::cuboid(100.0, 0.1).build();
         let ceiling = ColliderBuilder::cuboid(100.0, 0.1)
             .translation(vector![0.0, 20.0])
@@ -51,6 +59,7 @@ impl PhysicsEngine {
             .build();
         let puck_body_handle = rigid_body_set.insert(puck_rigid_body);
         collider_set.insert_with_parent(puck_collider, puck_body_handle, &mut rigid_body_set);
+        objects.insert(PUCK_ID, puck_body_handle);
 
         /* Create other structures necessary for the simulation. */
         let integration_parameters = IntegrationParameters::default();
@@ -80,20 +89,59 @@ impl PhysicsEngine {
             physics_hooks,
             event_handler,
             puck_body_handle,
+            objects,
         };
+    }
+
+    fn add_player(self: &mut Self, id: u64) -> Option<()> {
+        let rigid_body = RigidBodyBuilder::dynamic()
+            .translation(vector![0.0, 10.0])
+            .build();
+        let collider = ColliderBuilder::ball(0.5)
+            .restitution(1.0)
+            .friction(0.0)
+            .build();
+        let ball_body_handle = self.rigid_body_set.insert(rigid_body);
+        self.collider_set
+            .insert_with_parent(collider, ball_body_handle, &mut self.rigid_body_set);
+        self.objects.insert(id, ball_body_handle);
+        Some(())
+    }
+
+    fn move_player(self: &mut Self, id: u64, position: Vector2) -> Option<()> {
+        let player_handle = self.objects.get(&id)?;
+        let player_body = self.rigid_body_set.get_mut(*player_handle)?;
+        let current_position = player_body.translation();
+        let desired_position = vector![position.x, position.y];
+        let impulse = desired_position - current_position;
+        player_body.apply_impulse(impulse, true);
+        Some(())
+    }
+
+    fn remove_player(self: &mut Self, id: u64) -> Option<()> {
+        let handle = self.objects.get(&id)?;
+        self.rigid_body_set.remove(
+            *handle,
+            &mut self.island_manager,
+            &mut self.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            true,
+        );
+        Some(())
     }
 
     pub async fn run(
         self: &mut Self,
-        sender: watch::Sender<String>,
-        mut update_recv: mpsc::Receiver<EngineMessage>,
-    ) -> Result<(), watch::error::SendError<String>> {
+        engine_output_tx: watch::Sender<EngineOutputMessage>,
+        mut engine_input_rx: mpsc::Receiver<EngineInputMessage>,
+    ) -> Result<(), watch::error::SendError<EngineOutputMessage>> {
         let mut interval = time::interval(FRAME_RATE);
 
         let mut count: u64 = 0;
         let gravity = vector![0.0, 0.0];
 
-        info!("starting physics engine...");
+        info!("running physics engine...");
         /* Run the game loop, stepping the simulation once per frame. */
         loop {
             self.physics_pipeline.step(
@@ -113,59 +161,37 @@ impl PhysicsEngine {
             );
 
             {
-                let objects: String = self
-                    .rigid_body_set
-                    .iter()
-                    .map(|(handle, body)| {
-                        format!(
-                            "{:?}: {}, {}",
-                            handle.0,
-                            body.translation().x,
-                            body.translation().y
-                        )
-                    })
-                    .collect::<Vec<String>>()
-                    .join("\n");
-
                 let puck = self.rigid_body_set.get_mut(self.puck_body_handle).unwrap();
                 count += 1;
                 if count % 120 == 0 {
                     puck.apply_impulse(vector![0.0, -10.0], true);
                 }
-                match sender.send(objects) {
-                    Err(err) => {
-                        return Err(err);
-                    }
-                    Ok(_) => {}
-                }
+            }
+            {
+                let objects: EngineOutputMessage = self
+                    .objects
+                    .iter()
+                    .filter_map(|(&id, &handle)| {
+                        let position = self.rigid_body_set.get(handle)?.translation();
+                        let position = Vector2 {
+                            x: position.x,
+                            y: position.y,
+                        };
+                        Some((id, position))
+                    })
+                    .collect();
+
+                engine_output_tx.send(objects)?;
             }
 
             tokio::select! {
-                Some(update) = update_recv.recv() => {
+                Some(update) = engine_input_rx.recv() => {
                         match update {
-                            EngineMessage::Add => {
-                                let rigid_body = RigidBodyBuilder::dynamic()
-                                    .translation(vector![0.0, 10.0])
-                                    .build();
-                                let collider = ColliderBuilder::ball(0.5)
-                                    .restitution(1.0)
-                                    .friction(0.0)
-                                    .build();
-                                let ball_body_handle = self.rigid_body_set.insert(rigid_body);
-                                self.collider_set.insert_with_parent(collider, ball_body_handle, &mut self.rigid_body_set);
-                                info!("adding object");
+                            EngineInputMessage::AddPlayer(id) => {self.add_player(id); },
+                            EngineInputMessage::MovePlayer(id, position) => { self.move_player(id, position); },
+                            EngineInputMessage::RemovePlayer(id) => {self.remove_player(id); },
                             }
-                            EngineMessage::Remove(handle) => {
-                                self.rigid_body_set.remove(
-                                    handle,
-                                    &mut self.island_manager,
-                                    &mut self.collider_set,
-                                    &mut self.impulse_joint_set,
-                                    &mut self.multibody_joint_set,
-                                    true,
-                                );
-                            }
-                    }},
+                    },
                 _ = interval.tick() => {},
             }
         }
