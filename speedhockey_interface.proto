@@ -14,17 +14,19 @@ enum Team {
 }
 
 message Player {
-  uint64 id = 1;
-  Vector2 position = 2;
-  Team team = 3;
+  Vector2 position = 1;
+  Team team = 2;
 }
 
-message ObjectsUpdate {
+message ServerClientMessage {
   Vector2 puck_pos = 1;
-  repeated Player players = 2;
+  Vector2 client_pos = 2;
+  repeated Player other_players = 3;
+  optional uint32 red_score = 4;
+  optional uint32 blue_score = 5;
 }
 
-message ScoreUpdate {
-  uint32 red_score = 1;
-  uint32 blu_score = 2;
+message ClientServerMessage {
+  Vector2 position = 1;
+  optional Team team = 2;
 }

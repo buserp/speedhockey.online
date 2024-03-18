@@ -1,3 +1,4 @@
+// @ts-ignore: This is provided by a Parcel loader
 import certData from "bundle-text:../../cert_digest.txt"
 import * as speedhockey_interface from "./speedhockey_interface.ts";
 
@@ -68,7 +69,7 @@ async function readDatagrams(transport: WebTransport) {
                 addToEventLog('Done reading datagrams!');
                 return;
             }
-            let objects = speedhockey_interface.ObjectsUpdate.decode(value);
+            let objects = speedhockey_interface.ServerClientMessage.decode(value);
             console.log(objects);
         }
     } catch (e) {

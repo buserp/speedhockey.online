@@ -1,3 +1,4 @@
+use crate::speedhockey_interface::{ClientServerMessage, Player, ServerClientMessage};
 use anyhow::Result;
 use prost::Message;
 use std::io::Write;
@@ -11,7 +12,6 @@ use wtransport::tls::Sha256DigestFmt;
 use wtransport::Certificate;
 use wtransport::Endpoint;
 use wtransport::ServerConfig;
-use crate::speedhockey_interface::ObjectsUpdate;
 
 use crate::physics::EngineInputMessage;
 use crate::physics::EngineOutputMessage;
@@ -85,29 +85,45 @@ impl WebTransportServer {
         let session_request = incoming_session.await?;
 
         let connection = session_request.accept().await?;
-        info!("{} connected", connection.stable_id());
-        engine_input_tx.send(EngineInputMessage::AddPlayer(connection.stable_id() as u64)).await?;
+        let stable_id = connection.stable_id() as u64;
+        info!("{} connected", stable_id);
+        engine_input_tx
+            .send(EngineInputMessage::AddPlayer(stable_id))
+            .await?;
 
         loop {
             tokio::select! {
                 _ = engine_output_rx.changed() => {
                     let update = engine_output_rx.borrow_and_update();
-                    let objects = ObjectsUpdate {
-                        players: vec![],
-                        puck_pos: Some(update.get(&PUCK_ID).unwrap().clone()),
+                    let message = ServerClientMessage {
+                        other_players: update
+                            .iter()
+                            .filter_map(|(&id, position)| {
+                                if id == stable_id || id == PUCK_ID {
+                                    return None;
+                                }
+                                    return Some(Player {
+                                    team: 1,
+                                    position: Some(position.clone()),
+                                })})
+                            .collect(),
+                        client_pos: update.get(&stable_id).cloned(),
+                        puck_pos: update.get(&PUCK_ID).cloned(),
+                        red_score: None,
+                        blue_score: None,
                     };
-                    connection.send_datagram(objects.encode_to_vec())?;
+                    connection.send_datagram(message.encode_to_vec())?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    let str_data = std::str::from_utf8(&dgram)?;
+                    let message = ClientServerMessage::decode(dgram.payload());
 
-                    info!("Received (dgram) '{str_data}' from client");
+                    info!("Received (dgram) '{:?}' from client", message);
                     connection.send_datagram(b"ACK")?;
                 }
                 reason = connection.closed() => {
-                    info!("{} disconnected: {}", connection.stable_id(), reason);
-                    engine_input_tx.send(EngineInputMessage::RemovePlayer(connection.stable_id() as u64)).await?;
+                    info!("{} disconnected: {}", stable_id, reason);
+                    engine_input_tx.send(EngineInputMessage::RemovePlayer(stable_id)).await?;
                     return Ok(());
                 }
             }
