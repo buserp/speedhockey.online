@@ -74,9 +74,12 @@ const sketch = (p5: P5) => {
 
         for (const id in state.players) {
             const player = state.players[id];
-            if (player.team == Team.RED) {
+            if (player.team == Team.SPECTATOR) {
+                continue;
+            }
+            else if (player.team == Team.RED) {
                 p5.fill("red");
-            } else if (player.team == Team.BLU) {
+            } else { // (player.team == Team.BLU)
                 p5.fill("blue");
             }
             const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, player.position);

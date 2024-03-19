@@ -26,6 +26,9 @@ let puck = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PUCK_RADIUS, {
     frictionAir: 0.0075,
     restitution: 1.0,
     mass: 20.0,
+    collisionFilter: {
+        mask: 0b1,
+    },
 });
 
 const ground = Bodies.rectangle(ARENA_WIDTH / 2, ARENA_HEIGHT + wall_thickness / 2, ARENA_WIDTH, wall_thickness, { isStatic: true });
@@ -46,17 +49,23 @@ let state: GameState = {
 io.on("connect", (socket) => {
 
     state.players[socket.id] = {
-        position: { x: 0, y: 0 },
+        position: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
         team: Team.SPECTATOR,
     };
 
-    const playerBody = Bodies.circle(0, 0, PADDLE_RADIUS, { isStatic: true });
+    const playerBody = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: false, mass: 50.0, collisionFilter: {
+        mask: 0b0,
+    } });
     playerBodies[socket.id] = playerBody;
     Composite.add(engine.world, playerBody);
 
 
-
     socket.on("joinTeam", (team: Team) => {
+        if (team == Team.SPECTATOR) {
+            playerBody.collisionFilter.mask = 0b0;
+        } else {
+            playerBody.collisionFilter.mask = 0b1;
+        }
         state.players[socket.id].team = team;
     });
 
@@ -74,12 +83,11 @@ io.on("connect", (socket) => {
             const newX = playerBody.position.x + directionX * MAX_PLAYER_MOVE_DISTANCE;
             const newY = playerBody.position.y + directionY * MAX_PLAYER_MOVE_DISTANCE;
             // @ts-ignore (needed because type definitions for MatterJS are not correct)
-            Body.setPosition(playerBody, { x: newX, y: newY }, true);
+            Body.setVelocity(playerBody, { x: newX - playerBody.position.x, y: newY - playerBody.position.y }, true);
         } else {
             // @ts-ignore (needed because type definitions for MatterJS are not correct)
-            Body.setPosition(playerBody, pos, true);
+            Body.setVelocity(playerBody, { x: deltaX, y: deltaY }, true);
         }
-
     });
 
     socket.on("disconnect", (_) => {
