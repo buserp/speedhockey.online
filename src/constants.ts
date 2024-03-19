@@ -8,7 +8,7 @@ export const TICKRATE_MS = 16;
 export const PADDLE_RADIUS = 35;
 export const PUCK_RADIUS = 20;
 
-export const MAX_PLAYER_MOVE_DISTANCE = 20; // in pixels/tick (60Hz by default)
+export const MAX_PLAYER_MOVE_DISTANCE = 20; // in arena pixels/tick (60Hz by default)
 
 export function canvasToArena(canvasWidth: number, canvasHeight: number, pos: Vector2): Vector2 {
     const xScaleFactor = ARENA_WIDTH / canvasWidth;

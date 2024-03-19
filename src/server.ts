@@ -53,9 +53,11 @@ io.on("connect", (socket) => {
         team: Team.SPECTATOR,
     };
 
-    const playerBody = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PADDLE_RADIUS, { isStatic: false, mass: 50.0, collisionFilter: {
-        mask: 0b0,
-    } });
+    const playerBody = Bodies.circle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, PADDLE_RADIUS, {
+        isStatic: false, mass: 50.0, collisionFilter: {
+            mask: 0b0,
+        }
+    });
     playerBodies[socket.id] = playerBody;
     Composite.add(engine.world, playerBody);
 
@@ -67,6 +69,10 @@ io.on("connect", (socket) => {
             playerBody.collisionFilter.mask = 0b1;
         }
         state.players[socket.id].team = team;
+        Body.setPosition(playerBody, {
+            x: ARENA_WIDTH / 2,
+            y: ARENA_HEIGHT / 2,
+        });
     });
 
     socket.on("updatePosition", (pos: Vector2) => {
