@@ -112,6 +112,8 @@ impl WebTransportServer {
                         red_score: None,
                         blue_score: None,
                     };
+                    let message_length = message.encoded_len();
+                    info!("message length: {}", message_length);
                     connection.send_datagram(message.encode_to_vec())?;
                 }
                 dgram = connection.receive_datagram() => {

@@ -11,6 +11,14 @@ use crate::speedhockey_interface::Vector2;
 const FRAME_RATE: Duration = Duration::from_micros(16670);
 pub const PUCK_ID: u64 = 0;
 
+// 16:9 aspect ratio, for smartphones
+// Must match consts in index.ts
+const ARENA_WIDTH: f32 = 16.0;
+const ARENA_HEIGHT: f32 = 9.0;
+
+const PUCK_RADIUS: f32 = 0.5;
+const PADDLE_RADIUS: f32 = 0.5;
+
 pub enum EngineInputMessage {
     AddPlayer(u64),
     MovePlayer(u64, Vector2),
@@ -43,17 +51,17 @@ impl PhysicsEngine {
         let mut collider_set = ColliderSet::new();
         let mut objects: HashMap<u64, RigidBodyHandle> = HashMap::new();
 
-        let floor = ColliderBuilder::cuboid(100.0, 0.1).build();
-        let ceiling = ColliderBuilder::cuboid(100.0, 0.1)
-            .translation(vector![0.0, 20.0])
+        let floor = ColliderBuilder::cuboid(ARENA_WIDTH / 2.0, 0.1).build();
+        let ceiling = ColliderBuilder::cuboid(ARENA_WIDTH / 2.0, 0.1)
+            .translation(vector![0.0, ARENA_HEIGHT])
             .build();
         collider_set.insert(floor);
         collider_set.insert(ceiling);
 
         let puck_rigid_body = RigidBodyBuilder::dynamic()
-            .translation(vector![0.0, 10.0])
+            .translation(vector![ARENA_WIDTH/2.0, ARENA_HEIGHT/2.0])
             .build();
-        let puck_collider = ColliderBuilder::ball(0.5)
+        let puck_collider = ColliderBuilder::ball(PUCK_RADIUS)
             .restitution(1.0)
             .friction(0.0)
             .build();
@@ -97,7 +105,7 @@ impl PhysicsEngine {
         let rigid_body = RigidBodyBuilder::dynamic()
             .translation(vector![0.0, 10.0])
             .build();
-        let collider = ColliderBuilder::ball(0.5)
+        let collider = ColliderBuilder::ball(PADDLE_RADIUS)
             .restitution(1.0)
             .friction(0.0)
             .build();
@@ -164,7 +172,7 @@ impl PhysicsEngine {
                 let puck = self.rigid_body_set.get_mut(self.puck_body_handle).unwrap();
                 count += 1;
                 if count % 120 == 0 {
-                    puck.apply_impulse(vector![0.0, -10.0], true);
+                    // puck.apply_impulse(vector![10.0, -10.0], true);
                 }
             }
             {
