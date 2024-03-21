@@ -59,7 +59,7 @@ impl PhysicsEngine {
         collider_set.insert(ceiling);
 
         let puck_rigid_body = RigidBodyBuilder::dynamic()
-            .translation(vector![ARENA_WIDTH/2.0, ARENA_HEIGHT/2.0])
+            .translation(vector![ARENA_WIDTH / 2.0, ARENA_HEIGHT / 2.0])
             .build();
         let puck_collider = ColliderBuilder::ball(PUCK_RADIUS)
             .restitution(1.0)
@@ -103,7 +103,7 @@ impl PhysicsEngine {
 
     fn add_player(self: &mut Self, id: u64) -> Option<()> {
         let rigid_body = RigidBodyBuilder::dynamic()
-            .translation(vector![0.0, 10.0])
+            .translation(vector![ARENA_WIDTH / 2.0, ARENA_HEIGHT / 2.0])
             .build();
         let collider = ColliderBuilder::ball(PADDLE_RADIUS)
             .restitution(1.0)
@@ -119,10 +119,7 @@ impl PhysicsEngine {
     fn move_player(self: &mut Self, id: u64, position: Vector2) -> Option<()> {
         let player_handle = self.objects.get(&id)?;
         let player_body = self.rigid_body_set.get_mut(*player_handle)?;
-        let current_position = player_body.translation();
-        let desired_position = vector![position.x, position.y];
-        let impulse = desired_position - current_position;
-        player_body.apply_impulse(impulse, true);
+        player_body.set_translation(vector![position.x, position.y], true);
         Some(())
     }
 
@@ -146,7 +143,6 @@ impl PhysicsEngine {
     ) -> Result<(), watch::error::SendError<EngineOutputMessage>> {
         let mut interval = time::interval(FRAME_RATE);
 
-        let mut count: u64 = 0;
         let gravity = vector![0.0, 0.0];
 
         info!("running physics engine...");
@@ -167,30 +163,26 @@ impl PhysicsEngine {
                 &self.physics_hooks,
                 &self.event_handler,
             );
-
+            let puck = self.rigid_body_set.get_mut(self.puck_body_handle).unwrap();
+            if puck.translation().x < 0.0 - PUCK_RADIUS
+                || puck.translation().x > ARENA_WIDTH + PUCK_RADIUS
             {
-                let puck = self.rigid_body_set.get_mut(self.puck_body_handle).unwrap();
-                count += 1;
-                if count % 120 == 0 {
-                    // puck.apply_impulse(vector![10.0, -10.0], true);
-                }
+                puck.set_translation(vector![ARENA_WIDTH / 2.0, ARENA_HEIGHT / 2.0], true);
             }
-            {
-                let objects: EngineOutputMessage = self
-                    .objects
-                    .iter()
-                    .filter_map(|(&id, &handle)| {
-                        let position = self.rigid_body_set.get(handle)?.translation();
-                        let position = Vector2 {
-                            x: position.x,
-                            y: position.y,
-                        };
-                        Some((id, position))
-                    })
-                    .collect();
+            let objects: EngineOutputMessage = self
+                .objects
+                .iter()
+                .filter_map(|(&id, &handle)| {
+                    let position = self.rigid_body_set.get(handle)?.translation();
+                    let position = Vector2 {
+                        x: position.x,
+                        y: position.y,
+                    };
+                    Some((id, position))
+                })
+                .collect();
 
-                engine_output_tx.send(objects)?;
-            }
+            engine_output_tx.send(objects)?;
 
             tokio::select! {
                 Some(update) = engine_input_rx.recv() => {

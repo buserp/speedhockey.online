@@ -98,11 +98,33 @@ async function readDatagrams(transport: WebTransport) {
             return;
         }
         try {
-            let objects = speedhockey_interface.ServerClientMessage.decode(value);
-            gameState = objects;
+            let msg = speedhockey_interface.ServerClientMessage.decode(value);
+            handleMessage(msg);
         } catch (e) {
             console.error('Error while reading datagrams: ' + e, 'error');
         }
+    }
+}
+
+function handleMessage(msg: speedhockey_interface.ServerClientMessage) {
+    if (msg.puckPos) {
+        gameState.puckPos = arenaToCanvas(msg.puckPos);
+    }
+    if (!msg.otherPlayers) {
+        return;
+    }
+    if (msg.clientPos) {
+        gameState.clientPos = arenaToCanvas(msg.clientPos);
+    }
+    gameState.otherPlayers = [];
+    for (const player of msg.otherPlayers) {
+        if (!player.position || !player.team) {
+            continue;
+        }
+        gameState.otherPlayers.push(speedhockey_interface.Player.create({
+            position: arenaToCanvas(player.position),
+            team: player.team,
+        }));
     }
 }
 
@@ -145,24 +167,31 @@ const sketch = (p5: P5) => {
 
 
         p5.fill("black");
-        if (gameState.puckPos != undefined)
+        if (gameState.puckPos) {
             p5.ellipse(gameState.puckPos.x, gameState.puckPos.y, puckRadius, puckRadius);
-
+        }
 
         p5.fill("red");
         for (const player of gameState.otherPlayers) {
-            if (player.position != undefined)
+            if (player.position) {
                 p5.ellipse(player.position.x, player.position.y, puckRadius, puckRadius);
+            }
+        }
+        p5.fill("blue");
+        if (gameState.clientPos) {
+            p5.ellipse(gameState.clientPos.x, gameState.clientPos.y, puckRadius);
         }
         p5.textSize(32);
         p5.textAlign(p5.CENTER, p5.TOP);
         p5.fill(p5.color("red"));
-        if (gameState.redScore != undefined)
+        if (gameState.redScore) {
             p5.text(gameState.redScore, canvasWidth / 4, 10);
+        }
 
         p5.fill(p5.color("blue"));
-        if (gameState.blueScore != undefined)
+        if (gameState.blueScore) {
             p5.text(gameState.blueScore, (3 / 4 * canvasWidth), 10);
+        }
     };
 };
 

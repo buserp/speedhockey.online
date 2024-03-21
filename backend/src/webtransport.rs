@@ -112,15 +112,13 @@ impl WebTransportServer {
                         red_score: None,
                         blue_score: None,
                     };
-                    let message_length = message.encoded_len();
-                    info!("message length: {}", message_length);
                     connection.send_datagram(message.encode_to_vec())?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    let message = ClientServerMessage::decode(dgram.payload());
+                    let message = ClientServerMessage::decode(dgram.payload())?;
 
-                    info!("Received (dgram) '{:?}' from client", message);
+                    engine_input_tx.send(EngineInputMessage::MovePlayer(stable_id, message.position.unwrap())).await?;
                 }
                 reason = connection.closed() => {
                     info!("{} disconnected: {}", stable_id, reason);
