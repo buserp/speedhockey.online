@@ -121,7 +121,6 @@ impl WebTransportServer {
                     let message = ClientServerMessage::decode(dgram.payload());
 
                     info!("Received (dgram) '{:?}' from client", message);
-                    connection.send_datagram(b"ACK")?;
                 }
                 reason = connection.closed() => {
                     info!("{} disconnected: {}", stable_id, reason);

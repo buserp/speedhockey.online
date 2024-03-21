@@ -97,7 +97,6 @@ async function readDatagrams(transport: WebTransport) {
             addToEventLog('Done reading datagrams!');
             return;
         }
-        console.log(value);
         try {
             let objects = speedhockey_interface.ServerClientMessage.decode(value);
             gameState = objects;
