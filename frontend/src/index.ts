@@ -32,7 +32,8 @@ function arenaToCanvas(pos: speedhockey_interface.Vector2): speedhockey_interfac
     };
 }
 
-let currentTransport: WebTransport | null = null;
+let currentTeam = speedhockey_interface.Team.SPECTATOR;
+
 let currentTransportDatagramWriter: WritableStreamDefaultWriter | null = null;
 
 let gameState: speedhockey_interface.ServerClientMessage = {
@@ -44,7 +45,6 @@ let gameState: speedhockey_interface.ServerClientMessage = {
 };
 
 const container = document.getElementById('root')!;
-
 
 async function connect() {
     const url = "https://localhost:27015";
@@ -71,7 +71,6 @@ async function connect() {
         return;
     }
     console.log("WebTransport ready.");
-    currentTransport = transport;
     try {
         currentTransportDatagramWriter = transport.datagrams.writable.getWriter();
         console.log('Datagram writer ready.');
@@ -133,7 +132,6 @@ function handleMessage(msg: speedhockey_interface.ServerClientMessage) {
     });
 }
 
-
 const sketch = (p5: P5) => {
     p5.setup = () => {
         connect();
@@ -147,15 +145,15 @@ const sketch = (p5: P5) => {
 
         let redButton = p5.createButton('Red');
         redButton.position(20, canvasHeight + 10);
-        redButton.mousePressed(() => { });
+        redButton.mousePressed(() => { currentTeam = speedhockey_interface.Team.RED });
 
         let blueButton = p5.createButton('Blue');
         blueButton.position(100, canvasHeight + 10);
-        blueButton.mousePressed(() => { });
+        blueButton.mousePressed(() => { currentTeam = speedhockey_interface.Team.BLU });
 
         let specButton = p5.createButton('Spectate');
         specButton.position(180, canvasHeight + 10);
-        specButton.mousePressed(() => { });
+        specButton.mousePressed(() => { currentTeam = speedhockey_interface.Team.SPECTATOR });
     };
 
     // The sketch draw method
@@ -168,18 +166,26 @@ const sketch = (p5: P5) => {
 
         p5.fill("black");
         if (gameState.puckPos) {
-            p5.ellipse(gameState.puckPos.x, gameState.puckPos.y, puckRadius, puckRadius);
+            p5.circle(gameState.puckPos.x, gameState.puckPos.y, puckRadius);
         }
 
-        p5.fill("red");
         for (const player of gameState.otherPlayers) {
-            if (player.position) {
-                p5.ellipse(player.position.x, player.position.y, puckRadius, puckRadius);
-            }
+            if (!player.position || !player.team)
+                continue;
+            if (player.team == speedhockey_interface.Team.RED)
+                p5.fill("red");
+            else if (player.team == speedhockey_interface.Team.BLU)
+                p5.fill("blue");
+            p5.circle(player.position.x, player.position.y, puckRadius);
         }
-        p5.fill("blue");
-        if (gameState.clientPos) {
-            p5.ellipse(gameState.clientPos.x, gameState.clientPos.y, puckRadius);
+        if (gameState.clientPos && currentTeam != speedhockey_interface.Team.SPECTATOR) {
+            if (currentTeam == speedhockey_interface.Team.RED)
+                p5.fill("red");
+            else
+                p5.fill("blue");
+            p5.circle(gameState.clientPos.x, gameState.clientPos.y, puckRadius);
+            p5.fill("yellow");
+            p5.square(gameState.clientPos.x - puckRadius/8, gameState.clientPos.y-puckRadius/8, puckRadius/4);
         }
         p5.textSize(32);
         p5.textAlign(p5.CENTER, p5.TOP);
@@ -204,6 +210,7 @@ async function update(p5: P5) {
     if (currentTransportDatagramWriter != null) {
         let message = speedhockey_interface.ClientServerMessage.fromJSON({
             position: arenaPosition,
+            team: currentTeam,
         })
         let data = speedhockey_interface.ClientServerMessage.encode(message).finish();
         await currentTransportDatagramWriter.write(data);

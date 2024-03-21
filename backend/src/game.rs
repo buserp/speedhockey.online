@@ -229,8 +229,16 @@ impl Game {
         Some(())
     }
 
-    fn set_team(self: &mut Self, id: ObjectId, team: Team) {
+    fn set_team(self: &mut Self, id: ObjectId, team: Team) -> Option<()> {
+        let player_handle = self.objects.get(&id)?;
+        let player_body = self.engine.rigid_body_set.get_mut(*player_handle)?;
+        if team.eq(&Team::Spectator) {
+            player_body.set_enabled(false);
+        } else {
+            player_body.set_enabled(true);
+        }
         self.teams.insert(id, team);
+        Some(())
     }
 
     pub async fn run(
@@ -266,12 +274,16 @@ impl Game {
                 .iter()
                 .filter_map(|(&id, &handle)| {
                     let position = self.engine.rigid_body_set.get(handle)?.translation();
+                    let team = *self.teams.get(&id)?;
+                    if team.eq(&Team::Spectator) {
+                        return None;
+                    }
                     let player = Player {
                         position: Some(Vector2 {
                             x: position.x,
                             y: position.y,
                         }),
-                        team: *self.teams.get(&id)? as i32,
+                        team: team as i32,
                     };
                     Some((id, player))
                 })
