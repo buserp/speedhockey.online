@@ -6,7 +6,7 @@ use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use wtransport::Certificate;
 
-mod physics;
+mod game;
 mod webtransport;
 
 const BUFFER_SIZE: usize = 128;
@@ -42,15 +42,15 @@ async fn main() -> Result<()> {
 
     let webtransport_server = webtransport::WebTransportServer::new(certificate, WTRANSPORT_PORT)?;
 
-    let (engine_output_tx, engine_output_rx) = watch::channel(physics::EngineOutputMessage::new());
+    let (game_state_tx, game_state_rx) = watch::channel(game::GameState::new());
     let (engine_input_tx, engine_input_rx) = mpsc::channel(BUFFER_SIZE);
-    let mut physics_engine = physics::PhysicsEngine::new();
+    let mut physics_engine = game::Game::new();
 
     tokio::select! {
-        result = webtransport_server.serve(engine_output_rx, engine_input_tx) => {
+        result = webtransport_server.serve(game_state_rx, engine_input_tx) => {
             error!("WebTransport server: {:?}", result);
         }
-        result = physics_engine.run(engine_output_tx, engine_input_rx) => {
+        result = physics_engine.run(game_state_tx, engine_input_rx) => {
             info!("physics engine: {:?}", result);
         }
 

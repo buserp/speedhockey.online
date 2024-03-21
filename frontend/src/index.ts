@@ -3,6 +3,7 @@ import certData from "bundle-text:../../cert_digest.txt"
 import * as speedhockey_interface from "./speedhockey_interface.ts";
 
 import P5 from "p5";
+import { reduceEachLeadingCommentRange } from "typescript";
 
 const certDigest = new Uint8Array(JSON.parse(certData));
 
@@ -43,7 +44,6 @@ let gameState: speedhockey_interface.ServerClientMessage = {
 };
 
 const container = document.getElementById('root')!;
-addToEventLog("cert data: " + certData);
 
 
 async function connect() {
@@ -86,15 +86,15 @@ async function connect() {
 async function readDatagrams(transport: WebTransport) {
     try {
         var reader = transport.datagrams.readable.getReader();
-        addToEventLog('Datagram reader ready.');
+        console.debug('Datagram reader ready.');
     } catch (e) {
-        addToEventLog('Receiving datagrams not supported: ' + e, 'error');
+        console.error('Receiving datagrams not supported: ' + e, 'error');
         return;
     }
     while (true) {
         const { value, done } = await reader.read();
         if (done) {
-            addToEventLog('Done reading datagrams!');
+            console.debug('Done reading datagrams!');
             return;
         }
         try {
@@ -116,23 +116,23 @@ function handleMessage(msg: speedhockey_interface.ServerClientMessage) {
     if (msg.clientPos) {
         gameState.clientPos = arenaToCanvas(msg.clientPos);
     }
-    gameState.otherPlayers = [];
-    for (const player of msg.otherPlayers) {
-        if (!player.position || !player.team) {
-            continue;
-        }
-        gameState.otherPlayers.push(speedhockey_interface.Player.create({
-            position: arenaToCanvas(player.position),
-            team: player.team,
-        }));
+    if (msg.redScore) {
+        gameState.redScore = msg.redScore;
     }
+    if (msg.blueScore) {
+        gameState.blueScore = msg.blueScore;
+    }
+    gameState.otherPlayers = msg.otherPlayers.flatMap((op) => {
+        if (!op.position) {
+            return [];
+        }
+        return [{
+            position: arenaToCanvas(op.position),
+            team: op.team,
+        }];
+    });
 }
 
-function addToEventLog(text: string, _severity = 'info') {
-    let el = document.createElement('p');
-    el.innerText = text;
-    container.appendChild(el);
-}
 
 const sketch = (p5: P5) => {
     p5.setup = () => {

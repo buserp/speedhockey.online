@@ -1,4 +1,5 @@
-use crate::speedhockey_interface::{ClientServerMessage, Player, ServerClientMessage};
+use crate::game::ObjectId;
+use crate::speedhockey_interface::{ClientServerMessage, Player, ServerClientMessage, Team};
 use anyhow::Result;
 use prost::Message;
 use std::io::Write;
@@ -13,9 +14,9 @@ use wtransport::Certificate;
 use wtransport::Endpoint;
 use wtransport::ServerConfig;
 
-use crate::physics::EngineInputMessage;
-use crate::physics::EngineOutputMessage;
-use crate::physics::PUCK_ID;
+use crate::game::EngineInputMessage;
+use crate::game::GameState;
+use crate::game::PUCK_ID;
 
 const CERT_DIGEST_PATH: &str = "../cert_digest.txt";
 
@@ -60,7 +61,7 @@ impl WebTransportServer {
 
     pub async fn serve(
         self,
-        engine_output_rx: watch::Receiver<EngineOutputMessage>,
+        game_state_rx: watch::Receiver<GameState>,
         engine_input_tx: mpsc::Sender<EngineInputMessage>,
     ) -> Result<()> {
         info!("Server running on port {}", self.local_port());
@@ -70,7 +71,7 @@ impl WebTransportServer {
 
             tokio::spawn(Self::handle_incoming_session(
                 incoming_session,
-                engine_output_rx.clone(),
+                game_state_rx.clone(),
                 engine_input_tx.clone(),
             ));
         }
@@ -79,13 +80,13 @@ impl WebTransportServer {
 
     async fn handle_incoming_session(
         incoming_session: IncomingSession,
-        mut engine_output_rx: watch::Receiver<EngineOutputMessage>,
+        mut game_state_rx: watch::Receiver<GameState>,
         engine_input_tx: mpsc::Sender<EngineInputMessage>,
     ) -> Result<()> {
         let session_request = incoming_session.await?;
 
         let connection = session_request.accept().await?;
-        let stable_id = connection.stable_id() as u64;
+        let stable_id: ObjectId = connection.stable_id() as ObjectId;
         info!("{} connected", stable_id);
         engine_input_tx
             .send(EngineInputMessage::AddPlayer(stable_id))
@@ -93,32 +94,41 @@ impl WebTransportServer {
 
         loop {
             tokio::select! {
-                _ = engine_output_rx.changed() => {
-                    let update = engine_output_rx.borrow_and_update();
+                _ = game_state_rx.changed() => {
+                    let update = game_state_rx.borrow_and_update();
+                    let other_players = update.players
+                        .iter()
+                        .filter_map(|(&id, player)| {
+                            if id == stable_id || id == PUCK_ID {
+                                return None;
+                            }
+                                return Some(Player {
+                                team: player.team,
+                                position: player.position.clone(),
+                            })})
+                        .collect();
+                    let client_pos = match update.players.get(&stable_id) {
+                        Some(player) => { player.position.clone() },
+                        _ => { None },
+                    };
                     let message = ServerClientMessage {
-                        other_players: update
-                            .iter()
-                            .filter_map(|(&id, position)| {
-                                if id == stable_id || id == PUCK_ID {
-                                    return None;
-                                }
-                                    return Some(Player {
-                                    team: 1,
-                                    position: Some(position.clone()),
-                                })})
-                            .collect(),
-                        client_pos: update.get(&stable_id).cloned(),
-                        puck_pos: update.get(&PUCK_ID).cloned(),
-                        red_score: None,
-                        blue_score: None,
+                        other_players,
+                        client_pos,
+                        puck_pos: Some(update.puck_pos.clone()),
+                        red_score: Some(update.red_score),
+                        blue_score: Some(update.blue_score),
                     };
                     connection.send_datagram(message.encode_to_vec())?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
                     let message = ClientServerMessage::decode(dgram.payload())?;
-
-                    engine_input_tx.send(EngineInputMessage::MovePlayer(stable_id, message.position.unwrap())).await?;
+                    if let Some(position) = message.position {
+                        engine_input_tx.send(EngineInputMessage::MovePlayer(stable_id, position)).await?;
+                    };
+                    if let Some(team) = message.team {
+                        engine_input_tx.send(EngineInputMessage::SetTeam(stable_id, Team::try_from(team)?)).await?;
+                    };
                 }
                 reason = connection.closed() => {
                     info!("{} disconnected: {}", stable_id, reason);
