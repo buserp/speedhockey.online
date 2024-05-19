@@ -1,6 +1,6 @@
 
 import { Bodies, Composite, Engine, Body } from "matter-js";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { ClientToServerEvents, GameState, InterServerEvents, ServerToClientEvents, SocketData, Vector2, Player, Team } from "./types";
 import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE, clamp } from "./constants";
 
@@ -46,7 +46,7 @@ let state: GameState = {
     bluScore: 0,
 };
 
-io.on("connect", (socket) => {
+io.on("connect", (socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) => {
 
     state.players[socket.id] = {
         position: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
