@@ -1,13 +1,9 @@
 import { Socket, io } from "socket.io-client";
 import { ClientToServerEvents, GameState, ServerToClientEvents, Team } from "./types";
-import { Actor, Color, Engine, Entity, Circle, TransformComponent, Vector, Raster, GraphicsComponent } from 'excalibur';
-import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, canvasToArena, arenaToCanvas } from "./constants";
-import { Transform } from "stream";
+import { Actor, Color, Engine, Circle, Vector, DisplayMode } from 'excalibur';
+import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS } from "./constants";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
-
-let canvasWidth = ARENA_WIDTH;
-let canvasHeight = ARENA_HEIGHT;
 
 let state: GameState = {
   puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
@@ -16,108 +12,54 @@ let state: GameState = {
   bluScore: 0,
 };
 
-sio.on("updateGameState", (newState: GameState) => {
-  state = newState;
+const game = new Engine({
+  width: ARENA_WIDTH,
+  height: ARENA_HEIGHT,
+  displayMode: DisplayMode.FitScreen,
 });
 
-// const sketch = (p5: P5) => {
-//     p5.setup = () => {
-//         // Creating and positioning the canvas
-//         const canvas = p5.createCanvas(canvasWidth, canvasHeight);
-//         canvas.parent("app");
-//         canvas.style('border', '2px solid black');
+let playerMappings: { [key: string]: Actor } = {};
 
-//         screen.orientation.addEventListener("change", (ev) => {
-//             resizeCanvas(p5);
-//         });
-//         addEventListener("resize", (ev) => {
-//             resizeCanvas(p5);
-//         });
+sio.on("updateGameState", (newState: GameState) => {
+  state = newState;
+  for (const [playerName, player] of Object.entries(newState.players)) {
+    if (!(playerName in playerMappings))
+      playerMappings[playerName] = createPlayer(playerName);
+    playerMappings[playerName].transform.pos = new Vector(player.position.x, player.position.y);
+  }
+});
 
-//         // Configuring the canvas
-//         p5.background("white");
-
-//         let redButton = p5.createButton('Red');
-//         redButton.position(20, canvasHeight + 10);
-//         redButton.mousePressed(() => {
-//             joinTeam(Team.RED);
-//         });
-
-//         let blueButton = p5.createButton('Blue');
-//         blueButton.position(100, canvasHeight + 10);
-//         blueButton.mousePressed(() => {
-//             joinTeam(Team.BLU);
-//         });
-
-//         let specButton = p5.createButton('Spectate');
-//         specButton.position(180, canvasHeight + 10);
-//         specButton.mousePressed(() => {
-//             joinTeam(Team.SPECTATOR);
-//         });
-
-//         resizeCanvas(p5);
-//     };
-
-//     // The sketch draw method
-//     p5.draw = () => {
-//         update(p5);
-//         p5.background(p5.color("white"));
-
-//         p5.line(canvasWidth / 2, 0, canvasWidth / 2, canvasHeight);
-
-//         const puckDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PUCK_RADIUS * 2, y: PUCK_RADIUS * 2 });
-//         const puckPosition = arenaToCanvas(canvasWidth, canvasHeight, state.puckPos);
-//         p5.fill("black");
-//         p5.ellipse(puckPosition.x, puckPosition.y, puckDimensions.x, puckDimensions.y);
-
-
-//         const paddleDimensions = arenaToCanvas(canvasWidth, canvasHeight, { x: PADDLE_RADIUS * 2, y: PADDLE_RADIUS * 2 });
-
-//         for (const id in state.players) {
-//             const player = state.players[id];
-//             if (player.team == Team.SPECTATOR) {
-//                 continue;
-//             }
-//             else if (player.team == Team.RED) {
-//                 p5.fill("red");
-//             } else { // (player.team == Team.BLU)
-//                 p5.fill("blue");
-//             }
-//             const paddlePosition = arenaToCanvas(canvasWidth, canvasHeight, player.position);
-//             p5.ellipse(paddlePosition.x, paddlePosition.y, paddleDimensions.x, paddleDimensions.y);
-//         }
-
-//         p5.textSize(32);
-//         p5.textAlign(p5.CENTER, p5.TOP);
-//         p5.fill(p5.color("red"));
-//         p5.text(state.redScore, canvasWidth / 4, 10);
-
-//         p5.fill(p5.color("blue"));
-//         p5.text(state.bluScore, (3 / 4 * canvasWidth), 10);
-//     };
-// };
-
-// function update(p5: P5) {
-//     let canvasPosition = {
-//         x: p5.mouseX,
-//         y: p5.mouseY,
-//     };
-//     let arenaPosition = canvasToArena(canvasWidth, canvasHeight, canvasPosition);
-//     sio.emit("updatePosition", arenaPosition);
-// }
-
-// function resizeCanvas(p5: P5) {
-//     canvasWidth = p5.windowWidth * 0.75;
-//     canvasHeight = p5.windowHeight * 0.75;
-//     p5.resizeCanvas(canvasWidth, canvasHeight);
-// }
-
-// function joinTeam(team: number) {
-//     sio.emit("joinTeam", team);
-// }
-
-// new P5(sketch);
-
+function createPlayer(playerName: string): Actor {
+  const player = new Actor({
+    name: playerName
+  });
+  const circle = new Circle({
+    radius: PADDLE_RADIUS,
+  });
+  player.graphics.use(circle);
+  player.on("postupdate", (_ev) => {
+    const maybePlayer = state.players[playerName];
+    if (!maybePlayer) {
+      player.kill();
+      return;
+    }
+    switch(maybePlayer.team) {
+      case Team.BLU:
+        circle.color = Color.Blue;
+        player.graphics.use(circle);
+        break;
+      case Team.RED:
+        circle.color = Color.Red;
+        player.graphics.use(circle);
+        break;
+      case Team.SPECTATOR:
+        player.graphics.hide();
+    }
+    player.transform.pos = new Vector(maybePlayer.position.x, maybePlayer.position.y);
+  });
+  game.add(player);
+  return player;
+}
 
 function createPuck() {
   const puck = new Actor({
@@ -133,21 +75,14 @@ function createPuck() {
   puck.graphics.use(circle);
 
   puck.on('postupdate', (ev) => {
-      puck.transform.pos = new Vector(state.puckPos.x, state.puckPos.y);
-    });
-    
+    puck.transform.pos = new Vector(state.puckPos.x, state.puckPos.y);
+  });
+
   return puck;
 }
 
 function initializeGame() {
-  const game = new Engine({
-    width: ARENA_WIDTH,
-    height: ARENA_HEIGHT
-  });
-
   const puck = createPuck();
-
-
   game.add(puck);
   game.start();
 }
