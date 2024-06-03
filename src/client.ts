@@ -18,14 +18,14 @@ const game = new Engine({
   displayMode: DisplayMode.FitScreen,
 });
 
-let playerMappings: { [key: string]: Actor } = {};
+let playerActors: Set<string> = new Set();
 
 sio.on("updateGameState", (newState: GameState) => {
   state = newState;
-  for (const [playerName, player] of Object.entries(newState.players)) {
-    if (!(playerName in playerMappings))
-      playerMappings[playerName] = createPlayer(playerName);
-    playerMappings[playerName].transform.pos = new Vector(player.position.x, player.position.y);
+  for (const playerName of Object.keys(newState.players)) {
+    if (!playerActors.has(playerName)) {
+      createPlayer(playerName);
+    }
   }
 });
 
@@ -41,6 +41,7 @@ function createPlayer(playerName: string): Actor {
     const maybePlayer = state.players[playerName];
     if (!maybePlayer) {
       player.kill();
+      playerActors.delete(playerName);
       return;
     }
     switch(maybePlayer.team) {
@@ -57,6 +58,7 @@ function createPlayer(playerName: string): Actor {
     }
     player.transform.pos = new Vector(maybePlayer.position.x, maybePlayer.position.y);
   });
+  playerActors.add(playerName);
   game.add(player);
   return player;
 }
