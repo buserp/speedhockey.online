@@ -1,4 +1,3 @@
-
 import { Bodies, Composite, Engine, Body } from "matter-js";
 import { Server, Socket } from "socket.io";
 import { ClientToServerEvents, GameState, InterServerEvents, ServerToClientEvents, SocketData, Vector2, Player, Team } from "./types";
