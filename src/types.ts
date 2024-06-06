@@ -1,5 +1,7 @@
+import { Actor, Engine } from "excalibur";
+
 export interface ServerToClientEvents {
-    updateGameState: (state: GameState) => void;
+    updateGameState: (state: ServerState) => void;
 }
 
 export interface ClientToServerEvents {
@@ -10,12 +12,12 @@ export interface ClientToServerEvents {
 export interface InterServerEvents { }
 export interface SocketData { }
 
-export type Vector2 = {
+export interface Vector2 {
     x: number,
     y: number,
 };
 
-export type Player = {
+export interface Player {
     position: Vector2,
     team: Team,
 };
@@ -26,9 +28,14 @@ export enum Team {
     BLU,
 };
 
-export type GameState = {
+export interface ServerState {
     puckPos: Vector2,
     players: { [id: string]: Player },
     redScore: number,
     bluScore: number,
 };
+
+export interface ClientState {
+    players: { [id: string]: Actor },
+    game: Engine<any>,
+}

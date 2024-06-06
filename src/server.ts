@@ -1,6 +1,6 @@
 import { Bodies, Composite, Engine, Body } from "matter-js";
 import { Server, Socket } from "socket.io";
-import { ClientToServerEvents, GameState, InterServerEvents, ServerToClientEvents, SocketData, Vector2, Player, Team } from "./types";
+import { ClientToServerEvents, ServerState, InterServerEvents, ServerToClientEvents, SocketData, Vector2, Player, Team } from "./types";
 import { TICKRATE_MS, ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS, MAX_PLAYER_MOVE_DISTANCE, clamp } from "./constants";
 
 
@@ -38,7 +38,7 @@ Composite.add(engine.world, [puck, ground, ceiling]);
 let playerBodies: { [id: string]: Body } = {};
 
 
-let state: GameState = {
+let state: ServerState = {
     puckPos: puck.position,
     players: {},
     redScore: 0,
