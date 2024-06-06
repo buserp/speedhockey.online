@@ -78,6 +78,8 @@ io.on("connect", (socket: Socket<ClientToServerEvents, ServerToClientEvents, Int
         if (state.players[socket.id].team == Team.SPECTATOR) {
             return;
         }
+        pos.x = clamp(pos.x, 0, ARENA_WIDTH);
+        pos.y = clamp(pos.y, 0, ARENA_HEIGHT);
         const deltaX = pos.x - playerBody.position.x;
         const deltaY = pos.y - playerBody.position.y;
         const distance = Math.sqrt(deltaX ** 2 + deltaY ** 2);

@@ -1,6 +1,6 @@
 import { Socket, io } from "socket.io-client";
-import { ClientState, ClientToServerEvents, ServerState, ServerToClientEvents, Team } from "./types";
-import { Actor, Color, Engine, Circle, Vector, DisplayMode } from 'excalibur';
+import { ClientState, ClientToServerEvents, ServerState, ServerToClientEvents, Team, Vector2} from "./types";
+import { Actor, Color, Engine, Circle, Vector, DisplayMode, Handler, ScreenElement, Text, Font } from 'excalibur';
 import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS } from "./constants";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
@@ -20,6 +20,17 @@ let clientState: ClientState = {
     displayMode: DisplayMode.FitScreen,
   }),
 };
+
+class JoinButton extends ScreenElement {
+  constructor(text: string, onClick: () => void) {
+    super();
+    this.graphics.use(new Text({
+      text: text,
+      font: new Font({ size: 120 })
+    }));
+    this.on('pointerdown', onClick);
+  }
+}
 
 class Player extends Actor {
   circle: Circle;
@@ -70,6 +81,17 @@ class Puck extends Actor {
 function startGame() {
   const puck = new Puck();
   clientState.game.add(puck);
+  const joinButton = new JoinButton("Join Red", () => {
+    sio.emit("joinTeam", Team.RED);
+  });
+  clientState.game.add(joinButton);
+  clientState.game.on('postupdate', () => {
+    const desiredLocation: Vector2 = {
+      x: clientState.game.input.pointers.primary.lastWorldPos.x,
+      y: clientState.game.input.pointers.primary.lastWorldPos.y,
+    };
+    sio.emit("updatePosition", desiredLocation);
+  });
   clientState.game.start();
   sio.on("updateGameState", (newState: ServerState) => {
     serverState = newState;
