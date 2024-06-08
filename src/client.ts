@@ -14,14 +14,12 @@ import {
   Circle,
   Vector,
   DisplayMode,
-  Handler,
   ScreenElement,
   Text,
   Font,
-  Transform,
-  PostCollisionEvent,
   vec,
-  EventEmitter,
+  Line,
+  Rectangle,
 } from "excalibur";
 import {
   ARENA_WIDTH,
@@ -29,7 +27,6 @@ import {
   PUCK_RADIUS,
   PADDLE_RADIUS,
 } from "./constants";
-import { ActorEvents } from "excalibur/build/dist/Actor";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   process.env.SOCKET_URL as string
@@ -45,18 +42,16 @@ let serverState: ServerState = {
 let clientState: ClientState = {
   players: {},
   game: new Engine({
-    width: ARENA_WIDTH,
-    height: ARENA_HEIGHT,
+    width: ARENA_WIDTH * 1,
+    height: ARENA_HEIGHT * 1,
     displayMode: DisplayMode.FitScreen,
   }),
 };
 
 class JoinButton extends ScreenElement {
-  constructor(text: string, position: Vector, font: Font, onClick: () => void) {
-    super({
-      x: position.x,
-      y: position.y,
-    });
+  constructor(text: string, font: Font, onClick: () => void) {
+    super();
+    this.z = 1;
     this.graphics.use(
       new Text({
         text: text,
@@ -128,11 +123,24 @@ class Puck extends Actor {
 }
 
 class ScoreText extends ScreenElement {
-  constructor(font: Font, scoreFunc: () => number) {
+  text: Text;
+  scoreFunc: () => string;
+  constructor(font: Font, scoreFunc: () => string) {
     super();
+    this.z = 1;
+    this.scoreFunc = scoreFunc;
+    this.text = new Text({
+      text: this.scoreFunc(),
+      font: font,
+    });
+    clientState.game.on("teamJoined", () => {
+      this.graphics.use(this.text);
+    });
   }
 
-  onPostUpdate(engine: Engine<any>, delta: number): void {}
+  onPostUpdate(engine: Engine<any>, delta: number): void {
+    this.text.text = this.scoreFunc();
+  }
 }
 
 function startGame() {
@@ -140,7 +148,6 @@ function startGame() {
   clientState.game.add(puck);
   const blueButton = new JoinButton(
     "Join Blue",
-    vec(60, ARENA_HEIGHT / 2),
     new Font({
       size: 60,
       color: Color.Blue,
@@ -149,9 +156,10 @@ function startGame() {
       sio.emit("joinTeam", Team.BLU);
     }
   );
+  blueButton.anchor.setTo(1, 0);
+  blueButton.transform.pos.setTo(ARENA_WIDTH, 0);
   const redButton = new JoinButton(
     "Join Red",
-    vec(ARENA_WIDTH - 360, ARENA_HEIGHT / 2),
     new Font({
       size: 60,
       color: Color.Red,
@@ -160,6 +168,31 @@ function startGame() {
       sio.emit("joinTeam", Team.RED);
     }
   );
+  redButton.anchor.setTo(0, 0);
+  const redScore = new ScoreText(
+    new Font({
+      size: 60,
+      color: Color.Red,
+    }),
+    () => {
+      return serverState.redScore.toString();
+    }
+  );
+  redScore.anchor.setTo(0.5, 0);
+  redScore.pos.setTo(ARENA_WIDTH * (1 / 4), 0);
+  const blueScore = new ScoreText(
+    new Font({
+      size: 60,
+      color: Color.Blue,
+    }),
+    () => {
+      return serverState.bluScore.toString();
+    }
+  );
+  blueScore.anchor.setTo(0.5, 0);
+  blueScore.pos.setTo(ARENA_WIDTH * (3 / 4), 0);
+  clientState.game.add(redScore);
+  clientState.game.add(blueScore);
   clientState.game.add(redButton);
   clientState.game.add(blueButton);
   clientState.game.on("postupdate", () => {
@@ -179,6 +212,30 @@ function startGame() {
       }
     }
   });
+  const lineActor = new Actor();
+  lineActor.graphics.anchor = Vector.Zero;
+  lineActor.z = -1;
+  lineActor.graphics.use(
+    new Line({
+      start: vec(ARENA_WIDTH / 2, 0),
+      end: vec(ARENA_WIDTH / 2, ARENA_HEIGHT),
+      color: Color.Black,
+      thickness: 5,
+    })
+  );
+  const rectActor = new Actor();
+  rectActor.graphics.anchor = Vector.Zero;
+  rectActor.graphics.use(
+    new Rectangle({
+      width: ARENA_WIDTH,
+      color: Color.Transparent,
+      strokeColor: Color.Black,
+      lineWidth: 5,
+      height: ARENA_HEIGHT,
+    })
+  );
+  clientState.game.add(rectActor);
+  clientState.game.add(lineActor);
 }
 
 startGame();
