@@ -1,9 +1,34 @@
 import { Socket, io } from "socket.io-client";
-import { ClientState, ClientToServerEvents, ServerState, ServerToClientEvents, Team, Vector2} from "./types";
-import { Actor, Color, Engine, Circle, Vector, DisplayMode, Handler, ScreenElement, Text, Font } from 'excalibur';
-import { ARENA_WIDTH, ARENA_HEIGHT, PUCK_RADIUS, PADDLE_RADIUS } from "./constants";
+import {
+  ClientState,
+  ClientToServerEvents,
+  ServerState,
+  ServerToClientEvents,
+  Team,
+  Vector2,
+} from "./types";
+import {
+  Actor,
+  Color,
+  Engine,
+  Circle,
+  Vector,
+  DisplayMode,
+  Handler,
+  ScreenElement,
+  Text,
+  Font,
+} from "excalibur";
+import {
+  ARENA_WIDTH,
+  ARENA_HEIGHT,
+  PUCK_RADIUS,
+  PADDLE_RADIUS,
+} from "./constants";
 
-const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
+const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  process.env.SOCKET_URL as string
+);
 
 let serverState: ServerState = {
   puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
@@ -22,13 +47,15 @@ let clientState: ClientState = {
 };
 
 class JoinButton extends ScreenElement {
-  constructor(text: string, onClick: () => void) {
+  constructor(text: string, font: Font, onClick: () => void) {
     super();
-    this.graphics.use(new Text({
-      text: text,
-      font: new Font({ size: 120 })
-    }));
-    this.on('pointerdown', onClick);
+    this.graphics.use(
+      new Text({
+        text: text,
+        font: font,
+      })
+    );
+    this.on("pointerdown", onClick);
   }
 }
 
@@ -61,31 +88,46 @@ class Player extends Actor {
       case Team.SPECTATOR:
         this.graphics.hide();
     }
-    this.transform.pos = new Vector(maybePlayer.position.x, maybePlayer.position.y);
+    this.transform.pos = new Vector(
+      maybePlayer.position.x,
+      maybePlayer.position.y
+    );
   }
 }
 
 class Puck extends Actor {
   constructor() {
-    super({ name: 'puck' });
-    this.graphics.use(new Circle({
-      color: Color.Black,
-      radius: PUCK_RADIUS,
-    }));
+    super({ name: "puck" });
+    this.graphics.use(
+      new Circle({
+        color: Color.Black,
+        radius: PUCK_RADIUS,
+      })
+    );
   }
   onPostUpdate(_engine: Engine<any>, _delta: number): void {
-    this.transform.pos = new Vector(serverState.puckPos.x, serverState.puckPos.y);
+    this.transform.pos = new Vector(
+      serverState.puckPos.x,
+      serverState.puckPos.y
+    );
   }
 }
 
 function startGame() {
   const puck = new Puck();
   clientState.game.add(puck);
-  const joinButton = new JoinButton("Join Red", () => {
-    sio.emit("joinTeam", Team.RED);
-  });
+  const joinButton = new JoinButton(
+    "Join Red",
+    new Font({
+      size: 120,
+      color: Color.Red,
+    }),
+    () => {
+      sio.emit("joinTeam", Team.RED);
+    }
+  );
   clientState.game.add(joinButton);
-  clientState.game.on('postupdate', () => {
+  clientState.game.on("postupdate", () => {
     const desiredLocation: Vector2 = {
       x: clientState.game.input.pointers.primary.lastWorldPos.x,
       y: clientState.game.input.pointers.primary.lastWorldPos.y,

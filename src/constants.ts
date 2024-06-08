@@ -9,5 +9,5 @@ export const PUCK_RADIUS = 20;
 export const MAX_PLAYER_MOVE_DISTANCE = 5; // in arena pixels/tick (60Hz by default)
 
 export function clamp(val: number, low: number, high: number): number {
-    return Math.max(Math.min(val, high), low);
-};
+  return Math.max(Math.min(val, high), low);
+}
