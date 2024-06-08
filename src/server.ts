@@ -124,6 +124,11 @@ io.on(
       const deltaY = pos.y - playerBody.position.y;
       const distance = Math.sqrt(deltaX ** 2 + deltaY ** 2);
 
+      let delta = {
+        x: deltaX,
+        y: deltaY,
+      };
+
       if (distance > MAX_PLAYER_MOVE_DISTANCE) {
         const directionX = deltaX / distance;
         const directionY = deltaY / distance;
@@ -131,16 +136,14 @@ io.on(
           playerBody.position.x + directionX * MAX_PLAYER_MOVE_DISTANCE;
         const newY =
           playerBody.position.y + directionY * MAX_PLAYER_MOVE_DISTANCE;
-        // @ts-ignore (needed because type definitions for MatterJS are not correct)
-        Body.setVelocity(
-          playerBody,
-          { x: newX - playerBody.position.x, y: newY - playerBody.position.y },
-          true
-        );
-      } else {
-        // @ts-ignore (needed because type definitions for MatterJS are not correct)
-        Body.setVelocity(playerBody, { x: deltaX, y: deltaY }, true);
+
+        delta = {
+          x: newX - playerBody.position.x,
+          y: newY - playerBody.position.y,
+        };
       }
+      // @ts-ignore (needed because type definitions for MatterJS are not correct)
+      Body.setVelocity(playerBody, delta, true);
     });
 
     socket.on("disconnect", (_) => {

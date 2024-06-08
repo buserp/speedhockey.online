@@ -18,6 +18,10 @@ import {
   ScreenElement,
   Text,
   Font,
+  Transform,
+  PostCollisionEvent,
+  vec,
+  EventEmitter,
 } from "excalibur";
 import {
   ARENA_WIDTH,
@@ -25,6 +29,7 @@ import {
   PUCK_RADIUS,
   PADDLE_RADIUS,
 } from "./constants";
+import { ActorEvents } from "excalibur/build/dist/Actor";
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(
   process.env.SOCKET_URL as string
@@ -47,15 +52,24 @@ let clientState: ClientState = {
 };
 
 class JoinButton extends ScreenElement {
-  constructor(text: string, font: Font, onClick: () => void) {
-    super();
+  constructor(text: string, position: Vector, font: Font, onClick: () => void) {
+    super({
+      x: position.x,
+      y: position.y,
+    });
     this.graphics.use(
       new Text({
         text: text,
         font: font,
       })
     );
-    this.on("pointerdown", onClick);
+    this.on("pointerdown", () => {
+      onClick();
+      clientState.game.events.emit("teamJoined");
+    });
+    clientState.game.events.on("teamJoined", () => {
+      this.kill();
+    });
   }
 }
 
@@ -113,20 +127,41 @@ class Puck extends Actor {
   }
 }
 
+class ScoreText extends ScreenElement {
+  constructor(font: Font, scoreFunc: () => number) {
+    super();
+  }
+
+  onPostUpdate(engine: Engine<any>, delta: number): void {}
+}
+
 function startGame() {
   const puck = new Puck();
   clientState.game.add(puck);
-  const joinButton = new JoinButton(
-    "Join Red",
+  const blueButton = new JoinButton(
+    "Join Blue",
+    vec(60, ARENA_HEIGHT / 2),
     new Font({
-      size: 120,
+      size: 60,
+      color: Color.Blue,
+    }),
+    () => {
+      sio.emit("joinTeam", Team.BLU);
+    }
+  );
+  const redButton = new JoinButton(
+    "Join Red",
+    vec(ARENA_WIDTH - 360, ARENA_HEIGHT / 2),
+    new Font({
+      size: 60,
       color: Color.Red,
     }),
     () => {
       sio.emit("joinTeam", Team.RED);
     }
   );
-  clientState.game.add(joinButton);
+  clientState.game.add(redButton);
+  clientState.game.add(blueButton);
   clientState.game.on("postupdate", () => {
     const desiredLocation: Vector2 = {
       x: clientState.game.input.pointers.primary.lastWorldPos.x,
