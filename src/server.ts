@@ -85,6 +85,7 @@ io.on(
       position: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
       team: Team.SPECTATOR,
     };
+    console.log(socket.id + " connected");
 
     const playerBody = Bodies.circle(
       ARENA_WIDTH / 2,
@@ -148,7 +149,9 @@ io.on(
 
     socket.on("disconnect", (_) => {
       delete state.players[socket.id];
+      Composite.remove(engine.world, playerBodies[socket.id]);
       delete playerBodies[socket.id];
+      console.log(socket.id + " disconnected");
     });
   }
 );
