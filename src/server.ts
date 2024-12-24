@@ -165,7 +165,7 @@ function resetPuck() {
   Body.setAngularSpeed(puck, 0);
 }
 
-function tick(dt: number) {
+const tick: TimerHandler = (dt: number) => {
   Engine.update(engine, dt);
   if (puck.position.x < 0) {
     resetPuck();
@@ -182,7 +182,7 @@ function tick(dt: number) {
     state.players[id].position = playerBody.position;
   }
   io.emit("updateGameState", state);
-}
+};
 
 setInterval(tick, TICKRATE_MS);
 

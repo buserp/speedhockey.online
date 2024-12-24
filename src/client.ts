@@ -158,7 +158,7 @@ function startGame() {
     }
   );
   blueButton.graphics.anchor.setTo(0.5, 0.5);
-  blueButton.transform.pos.setTo(ARENA_WIDTH * (3/4), ARENA_HEIGHT / 2);
+  blueButton.transform.pos.setTo(ARENA_WIDTH * (3 / 4), ARENA_HEIGHT / 2);
   const redButton = new JoinButton(
     "Join Red",
     new Font({
@@ -170,7 +170,7 @@ function startGame() {
     }
   );
   redButton.graphics.anchor.setTo(0.5, 0.5);
-  redButton.transform.pos.setTo(ARENA_WIDTH * (1/4), ARENA_HEIGHT/2)
+  redButton.transform.pos.setTo(ARENA_WIDTH * (1 / 4), ARENA_HEIGHT / 2);
   const redScore = new ScoreText(
     new Font({
       size: 60,
