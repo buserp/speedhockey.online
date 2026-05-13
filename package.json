@@ -1,5 +1,6 @@
 {
   "name": "speedhockey.online",
+  "packageManager": "pnpm",
   "version": "1.0.0",
   "scripts": {
     "build": "cross-env NODE_ENV=production parcel build src/index.html",
@@ -19,7 +20,7 @@
   },
   "devDependencies": {
     "@types/matter-js": "^0.19.8",
-    "@types/node": "^20.19.39",
+    "@types/node": "^20.19.41",
     "buffer": "^6.0.3",
     "cross-env": "^7.0.3"
   }
