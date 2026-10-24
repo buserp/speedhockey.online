@@ -1,6 +1,8 @@
-FROM node:latest
+FROM node:24-slim
+RUN corepack enable
 WORKDIR /app
-COPY . /app
-RUN npm install
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY . .
 EXPOSE 3000
-ENTRYPOINT ["npm", "run", "serve"]
+ENTRYPOINT ["pnpm", "run", "serve"]
