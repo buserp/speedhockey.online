@@ -1,12 +1,10 @@
-import { Actor, Engine } from "excalibur";
-
 export interface ServerToClientEvents {
   updateGameState: (state: ServerState) => void;
 }
 
 export interface ClientToServerEvents {
-  updatePosition: (pos: Vector2) => void;
-  joinTeam: (team: Team) => void;
+  requestPosition: (pos: Vector2) => void;
+  joinTeam: (team: Team, pos: Vector2) => void;
 }
 
 export interface InterServerEvents {}
@@ -33,9 +31,4 @@ export interface ServerState {
   players: { [id: string]: Player };
   redScore: number;
   bluScore: number;
-}
-
-export interface ClientState {
-  players: { [id: string]: Actor };
-  game: Engine<any>;
 }

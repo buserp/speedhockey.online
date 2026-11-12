@@ -1,36 +1,14 @@
-import { Socket, io } from "socket.io-client";
-import {
-  ClientState,
-  ClientToServerEvents,
-  ServerState,
-  ServerToClientEvents,
-  Team,
-  Vector2,
-} from "./types";
-import {
-  Actor,
-  Color,
-  Engine,
-  Circle,
-  Vector,
-  DisplayMode,
-  ScreenElement,
-  Text,
-  Font,
-  vec,
-  Line,
-  Rectangle,
-} from "excalibur";
-import {
-  ARENA_WIDTH,
-  ARENA_HEIGHT,
-  PUCK_RADIUS,
-  PADDLE_RADIUS,
-} from "./constants";
+import { Socket, io } from 'socket.io-client';
+import { ARENA_HEIGHT, ARENA_WIDTH, PADDLE_RADIUS, PUCK_RADIUS, TICKRATE_MS } from './constants';
+import { startPreciseInterval } from './shared';
+import { ClientToServerEvents, Player, ServerState, ServerToClientEvents, Team, Vector2 } from './types';
 
-const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(
-  process.env.SOCKET_URL as string
-);
+const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
+
+const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+canvas.addEventListener('click', canvasClickHandler);
+canvas.addEventListener('pointermove', canvasPointerHandler);
 
 let serverState: ServerState = {
   puckPos: { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 },
@@ -39,205 +17,127 @@ let serverState: ServerState = {
   bluScore: 0,
 };
 
-let clientState: ClientState = {
-  players: {},
-  game: new Engine({
-    width: ARENA_WIDTH * 1,
-    height: ARENA_HEIGHT * 1,
-    displayMode: DisplayMode.FitScreen,
-    backgroundColor: Color.White,
-  }),
-};
+const pointerPosition: Vector2 = { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 };
 
-class JoinButton extends ScreenElement {
-  constructor(text: string, font: Font, onClick: () => void) {
-    super();
-    this.z = 1;
-    this.graphics.use(
-      new Text({
-        text: text,
-        font: font,
-      })
-    );
-    this.on("pointerdown", () => {
-      onClick();
-      clientState.game.events.emit("teamJoined");
-    });
-    clientState.game.events.on("teamJoined", () => {
-      this.kill();
-    });
-  }
-}
-
-class Player extends Actor {
-  circle: Circle;
-  constructor(playerName: string) {
-    super({ name: playerName });
-    this.circle = new Circle({
-      radius: PADDLE_RADIUS,
-    });
-    clientState.game.add(this);
-  }
-
-  onPostUpdate(_engine: Engine<any>, _delta: number): void {
-    const maybePlayer = serverState.players[this.name];
-    if (!maybePlayer) {
-      this.kill();
-      delete clientState.players[this.name];
-      return;
-    }
-    switch (maybePlayer.team) {
-      case Team.BLU:
-        this.circle.color = Color.Blue;
-        this.graphics.use(this.circle);
-        break;
-      case Team.RED:
-        this.circle.color = Color.Red;
-        this.graphics.use(this.circle);
-        break;
-      case Team.SPECTATOR:
-        this.graphics.hide();
-    }
-    this.transform.pos = new Vector(
-      maybePlayer.position.x,
-      maybePlayer.position.y
-    );
-  }
-}
-
-class Puck extends Actor {
-  constructor() {
-    super({ name: "puck" });
-    this.graphics.use(
-      new Circle({
-        color: Color.Black,
-        radius: PUCK_RADIUS,
-      })
-    );
-  }
-  onPostUpdate(_engine: Engine<any>, _delta: number): void {
-    this.transform.pos = new Vector(
-      serverState.puckPos.x,
-      serverState.puckPos.y
-    );
-  }
-}
-
-class ScoreText extends ScreenElement {
-  text: Text;
-  scoreFunc: () => string;
-  constructor(font: Font, scoreFunc: () => string) {
-    super();
-    this.z = 1;
-    this.scoreFunc = scoreFunc;
-    this.text = new Text({
-      text: this.scoreFunc(),
-      font: font,
-    });
-    clientState.game.on("teamJoined", () => {
-      this.graphics.use(this.text);
-    });
-  }
-
-  onPostUpdate(engine: Engine<any>, delta: number): void {
-    this.text.text = this.scoreFunc();
-  }
-}
-
-function startGame() {
-  const puck = new Puck();
-  clientState.game.add(puck);
-  const blueButton = new JoinButton(
-    "Join Blue",
-    new Font({
-      size: 60,
-      color: Color.Blue,
-    }),
-    () => {
-      sio.emit("joinTeam", Team.BLU);
-    }
-  );
-  blueButton.graphics.anchor.setTo(0.5, 0.5);
-  blueButton.transform.pos.setTo(ARENA_WIDTH * (3 / 4), ARENA_HEIGHT / 2);
-  const redButton = new JoinButton(
-    "Join Red",
-    new Font({
-      size: 60,
-      color: Color.Red,
-    }),
-    () => {
-      sio.emit("joinTeam", Team.RED);
-    }
-  );
-  redButton.graphics.anchor.setTo(0.5, 0.5);
-  redButton.transform.pos.setTo(ARENA_WIDTH * (1 / 4), ARENA_HEIGHT / 2);
-  const redScore = new ScoreText(
-    new Font({
-      size: 60,
-      color: Color.Red,
-    }),
-    () => {
-      return serverState.redScore.toString();
-    }
-  );
-  redScore.anchor.setTo(0.5, 0);
-  redScore.pos.setTo(ARENA_WIDTH * (1 / 4), 0);
-  const blueScore = new ScoreText(
-    new Font({
-      size: 60,
-      color: Color.Blue,
-    }),
-    () => {
-      return serverState.bluScore.toString();
-    }
-  );
-  blueScore.anchor.setTo(0.5, 0);
-  blueScore.pos.setTo(ARENA_WIDTH * (3 / 4), 0);
-  clientState.game.add(redScore);
-  clientState.game.add(blueScore);
-  clientState.game.add(redButton);
-  clientState.game.add(blueButton);
-  clientState.game.on("postupdate", () => {
-    const desiredLocation: Vector2 = {
-      x: clientState.game.input.pointers.primary.lastWorldPos.x,
-      y: clientState.game.input.pointers.primary.lastWorldPos.y,
-    };
-    sio.emit("updatePosition", desiredLocation);
-  });
-  clientState.game.start();
-  sio.on("updateGameState", (newState: ServerState) => {
+function main() {
+  sio.on('updateGameState', (newState: ServerState) => {
     serverState = newState;
-    for (const playerName of Object.keys(serverState.players)) {
-      if (!(playerName in clientState.players)) {
-        const playerActor = new Player(playerName);
-        clientState.players[playerName] = playerActor;
-      }
-    }
   });
-  const lineActor = new Actor();
-  lineActor.graphics.anchor = Vector.Zero;
-  lineActor.z = -1;
-  lineActor.graphics.use(
-    new Line({
-      start: vec(ARENA_WIDTH / 2, 0),
-      end: vec(ARENA_WIDTH / 2, ARENA_HEIGHT),
-      color: Color.Black,
-      thickness: 5,
-    })
-  );
-  const rectActor = new Actor();
-  rectActor.graphics.anchor = Vector.Zero;
-  rectActor.graphics.use(
-    new Rectangle({
-      width: ARENA_WIDTH,
-      color: Color.Transparent,
-      strokeColor: Color.Black,
-      lineWidth: 5,
-      height: ARENA_HEIGHT,
-    })
-  );
-  clientState.game.add(rectActor);
-  clientState.game.add(lineActor);
+
+  startPreciseInterval(tick, TICKRATE_MS);
 }
 
-startGame();
+function tick() {
+  clearCanvas();
+  drawBackground();
+  const self = extractSelf();
+  if (self === undefined) {
+    return;
+  }
+  drawGameplay();
+  drawScore();
+  if (self.team === Team.SPECTATOR) {
+    drawTeamSelect();
+  } else {
+    sio.volatile.emit('requestPosition', pointerPosition);
+  }
+}
+
+function drawTeamSelect() {
+  const boldFont = 'bold 96px sans-serif';
+  const regularFont = '96px sans-serif';
+  const redSelected = pointerPosition.x < ARENA_WIDTH / 2;
+
+  ctx.font = redSelected ? boldFont : regularFont;
+  ctx.fillStyle = 'red';
+  ctx.textAlign = 'left';
+  ctx.fillText('JOIN RED', 0, ARENA_HEIGHT / 2);
+
+  ctx.font = redSelected ? regularFont : boldFont;
+  ctx.fillStyle = 'blue';
+  ctx.textAlign = 'right';
+  ctx.fillText('JOIN BLUE', ARENA_WIDTH, ARENA_HEIGHT / 2);
+}
+
+function drawBackground() {
+  ctx.fillStyle = 'pink';
+  ctx.fillRect(0, 0, ARENA_WIDTH / 2, ARENA_HEIGHT);
+
+  ctx.fillStyle = 'lightblue';
+  ctx.fillRect(ARENA_WIDTH / 2, 0, ARENA_WIDTH / 2, ARENA_HEIGHT);
+}
+
+function drawGameplay() {
+  for (const [, player] of Object.entries(serverState.players)) {
+    let playerColor = '';
+    if (player.team === Team.RED) {
+      playerColor = 'red';
+    } else if (player.team === Team.BLU) {
+      playerColor = 'blue';
+    } else {
+      continue;
+    }
+    drawCircle(player.position.x, player.position.y, PADDLE_RADIUS, playerColor);
+  }
+  drawCircle(serverState.puckPos.x, serverState.puckPos.y, PUCK_RADIUS, 'black');
+}
+
+function drawCircle(x: number, y: number, radius: number, color: string) {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = 'black';
+  ctx.stroke();
+}
+
+function drawScore() {
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = 'red';
+  ctx.fillText(`${serverState.redScore}`, ARENA_WIDTH * (1 / 4), ARENA_HEIGHT / 4);
+
+  ctx.fillStyle = 'blue';
+  ctx.fillText(`${serverState.bluScore}`, ARENA_WIDTH * (3 / 4), ARENA_HEIGHT / 4);
+}
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function extractSelf(): Player | undefined {
+  for (const [id, player] of Object.entries(serverState.players)) {
+    if (id === sio.id) {
+      return player;
+    }
+  }
+}
+
+function canvasClickHandler(event: PointerEvent) {
+  const self = extractSelf();
+  if (self === undefined || self.team !== Team.SPECTATOR) {
+    return;
+  }
+  const { x } = canvasCoordinates(event);
+  if (x < ARENA_WIDTH / 2) {
+    sio.emit('joinTeam', Team.RED, pointerPosition);
+  } else {
+    sio.emit('joinTeam', Team.BLU, pointerPosition);
+  }
+}
+
+function canvasPointerHandler(event: PointerEvent) {
+  const { x, y } = canvasCoordinates(event);
+  pointerPosition.x = x;
+  pointerPosition.y = y;
+}
+
+function canvasCoordinates(event: PointerEvent): Vector2 {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  return { x, y };
+}
+
+main();
