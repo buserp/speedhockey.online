@@ -1,7 +1,8 @@
+import assertNever from 'assert-never';
 import { Socket, io } from 'socket.io-client';
 import { ARENA_HEIGHT, ARENA_WIDTH, PADDLE_RADIUS, PUCK_RADIUS, TICKRATE_MS } from './constants';
 import { startPreciseInterval } from './shared';
-import { ClientToServerEvents, Player, ServerState, ServerToClientEvents, Team, Vector2 } from './types';
+import { ClientToServerEvents, Player, ServerState, ServerToClientEvents, SoundEffects, Team, Vector2 } from './types';
 
 const sio: Socket<ServerToClientEvents, ClientToServerEvents> = io(process.env.SOCKET_URL as string);
 
@@ -18,13 +19,86 @@ let serverState: ServerState = {
 };
 
 const pointerPosition: Vector2 = { x: ARENA_WIDTH / 2, y: ARENA_HEIGHT / 2 };
+const selectSoundEffect = (sound: SoundEffects): string => {
+  switch (sound) {
+    case SoundEffects.PlayerHitsPlayer:
+      return 'Boom';
+    case SoundEffects.PlayerHitsPuck:
+      return 'Blip';
+    case SoundEffects.PlayerHitsWall:
+      return 'Hit';
+    case SoundEffects.PuckHitsWall:
+      return 'Clang';
+    case SoundEffects.ScoreGoal:
+      return 'PowerUp';
+    default:
+      assertNever(sound);
+  }
+};
 
 function main() {
   sio.on('updateGameState', (newState: ServerState) => {
+    playSounds(serverState, newState);
     serverState = newState;
   });
 
   startPreciseInterval(tick, TICKRATE_MS);
+}
+
+function playSounds(oldState: ServerState, newState: ServerState) {
+  const { puckPos: oldPuckPos, players: oldPlayers, bluScore: oldBluScore, redScore: oldRedScore } = oldState;
+  const { puckPos: newPuckPos, players: newPlayers, bluScore: newBluScore, redScore: newRedScore } = newState;
+  if (newBluScore !== oldBluScore || newRedScore !== oldRedScore) {
+    playSound(SoundEffects.ScoreGoal);
+  }
+  if (
+    Math.abs(newPuckPos.y - oldPuckPos.y) > 0.5 &&
+    (newPuckPos.y + PUCK_RADIUS >= ARENA_HEIGHT || newPuckPos.y - PUCK_RADIUS <= 0)
+  ) {
+    playSound(SoundEffects.PuckHitsWall);
+  }
+  for (const [id, newPlayer] of Object.entries(newPlayers)) {
+    const oldPlayer = oldPlayers[id];
+    // On the first frame of a player's existence, do nothing
+    if (oldPlayer === undefined) {
+      continue;
+    }
+    // Player has to be moving to create sound effects
+    if (vectorDistance(newPlayer.position, oldPlayer.position) < 1) {
+      continue;
+    }
+    if (vectorDistance(newPlayer.position, newPuckPos) < PUCK_RADIUS + PADDLE_RADIUS) {
+      playSound(SoundEffects.PlayerHitsPuck);
+    }
+    if (newPlayer.position.y + PADDLE_RADIUS >= ARENA_HEIGHT || newPlayer.position.y - PADDLE_RADIUS <= 0) {
+      playSound(SoundEffects.PlayerHitsWall);
+    }
+    for (const [otherId, otherPlayer] of Object.entries(newPlayers)) {
+      if (otherId === id) {
+        continue;
+      }
+      if (vectorDistance(newPlayer.position, oldPlayer.position) < 3) {
+        continue;
+      }
+      if (vectorDistance(newPlayer.position, otherPlayer.position) < 2 * PADDLE_RADIUS) {
+        playSound(SoundEffects.PlayerHitsPlayer);
+      }
+    }
+  }
+}
+
+function vectorDistance(a: Vector2, b: Vector2) {
+  return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+}
+
+function playSound(sound: SoundEffects) {
+  const soundId = selectSoundEffect(sound);
+  const audio = document.getElementById(soundId) as HTMLAudioElement;
+  if (audio === null) {
+    return;
+  }
+  audio.currentTime = 0;
+  audio.play();
 }
 
 function tick() {

@@ -12,6 +12,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "assert-never": "^1.4.0",
     "matter-js": "^0.20.0",
     "parcel": "^2.16.4",
     "socket.io": "^4.8.4",

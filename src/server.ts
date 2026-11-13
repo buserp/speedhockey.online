@@ -1,8 +1,8 @@
-import Matter, { Bodies, Body, Composite, Engine, ICollisionCallback, Runner } from 'matter-js';
+import { Bodies, Body, Composite, Engine } from 'matter-js';
 import { Server, Socket } from 'socket.io';
 import { ARENA_HEIGHT, ARENA_WIDTH, MAX_PLAYER_MOVE_DISTANCE, PADDLE_RADIUS, PUCK_RADIUS, TICKRATE_MS, clamp, } from './constants';
 import { startPreciseInterval } from './shared';
-import { ClientToServerEvents, InterServerEvents, ServerState, ServerToClientEvents, SocketData, Team, Vector2, } from './types';
+import { ClientToServerEvents, InterServerEvents, ServerState, ServerToClientEvents, SocketData, Team, Vector2 } from './types';
 
 const engine = Engine.create({ gravity: { y: 0 } });
 const wall_thickness = 50;
@@ -132,13 +132,6 @@ function tick() {
   }
   io.volatile.emit('updateGameState', state);
 }
-
-// const collisionHandler: ICollisionCallback = (event) => {
-//   for (const pair of event.pairs) {
-//     console.log(`collision between ${pair.bodyA.id} and ${pair.bodyB.id}`);
-//   }
-// };
-// Matter.Events.on(engine, 'collisionStart', collisionHandler);
 
 startPreciseInterval(tick, TICKRATE_MS);
 

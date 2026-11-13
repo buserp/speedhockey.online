@@ -1,5 +1,6 @@
 export interface ServerToClientEvents {
   updateGameState: (state: ServerState) => void;
+  playSound: (sound: SoundEffects) => void;
 }
 
 export interface ClientToServerEvents {
@@ -24,6 +25,14 @@ export enum Team {
   SPECTATOR = -1,
   RED,
   BLU,
+}
+
+export enum SoundEffects {
+  PlayerHitsPuck,
+  PlayerHitsPlayer,
+  PlayerHitsWall,
+  PuckHitsWall,
+  ScoreGoal,
 }
 
 export interface ServerState {

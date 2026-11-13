@@ -4,7 +4,7 @@ export function startPreciseInterval(callback: Function, intervalMs: number) {
   function step() {
     const now = performance.now();
     const drift = now - expected;
-    callback(drift);
+    callback();
     expected += intervalMs;
     setTimeout(step, Math.max(0, intervalMs - drift));
   }
